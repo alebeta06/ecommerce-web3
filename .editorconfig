@@ -1,0 +1,23 @@
+# EditorConfig — https://editorconfig.org
+# 🇪🇸 NOTA: Mantiene consistencia de formato entre editores e IDEs distintos
+# (VSCode, Cursor, Antigravity, vim, etc.). Evita peleas de auto-format
+# cuando varios devs colaboran en el repo.
+
+root = true
+
+[*]
+indent_style = space
+indent_size = 2
+end_of_line = lf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+[*.sol]
+indent_size = 4
+
+[*.md]
+trim_trailing_whitespace = false
+
+[Makefile]
+indent_style = tab

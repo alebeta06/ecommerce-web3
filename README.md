@@ -111,6 +111,22 @@ ecommerce-web3/
 
 ---
 
+## 🤖 AI-Assisted Development
+
+This project was built using **Claude Code** (Anthropic) as a development partner.
+See [`CLAUDE.md`](./CLAUDE.md) — the master guide read by both Claude and humans.
+
+The collaboration philosophy: AI handles boilerplate and explanation,
+the human owns architecture and decisions. Every technical choice in this repo
+was understood by the author before being committed.
+
+<!-- 🇪🇸 NOTA: Esta sección hace explícito que el repo se construye con IA generativa.
+     Coherente con el nombre del Máster ("Blockchain & AI Systems Engineering") y
+     con la filosofía de transparencia: el autor entiende cada decisión antes de
+     commitearla, la IA acelera la ejecución pero no reemplaza el pensamiento crítico. -->
+
+---
+
 ## 📄 License
 
 [MIT](LICENSE) © 2026 alebeta06
