@@ -1,0 +1,11 @@
+# 🇪🇸 NOTA: Este archivo le dice a pnpm QUÉ carpetas son "miembros" del workspace.
+# Cada glob abajo es un patrón de rutas. pnpm tratará cada subcarpeta con su propio
+# package.json como un paquete enlazable dentro del monorepo. Así, una app puede hacer
+# "import ... from '@ecommerce-web3/shared-abis'" y pnpm lo resuelve localmente (sin npm publish).
+#
+# Los contratos Foundry NO son paquetes npm, pero los incluimos por si más adelante
+# añadimos utilidades JS junto a ellos (p.ej. scripts de generación de ABIs).
+packages:
+  - "apps/*"
+  - "packages/*"
+  - "contracts/*"

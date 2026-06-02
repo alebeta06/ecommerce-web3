@@ -1,0 +1,21 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "//": "🇪🇸 NOTA: Turborepo orquesta tareas a través de los paquetes del monorepo y CACHEA resultados. Si el código de un paquete no cambió, Turbo reutiliza el build anterior (cache hit) en vez de re-ejecutar. 'dependsOn: [^build]' significa: antes de construir este paquete, construye primero los paquetes de los que depende (el ^ apunta a dependencias upstream).",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": [".next/**", "!.next/cache/**", "dist/**", "out/**"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "test": {
+      "dependsOn": ["^build"]
+    },
+    "lint": {},
+    "format": {
+      "cache": false
+    }
+  }
+}

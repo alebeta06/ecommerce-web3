@@ -1,0 +1,21 @@
+{
+  "name": "ecommerce-web3",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Full-stack Web3 e-commerce system with a EUR-pegged stablecoin (EURT). Master's module 8 — CodeCrypto.",
+  "license": "MIT",
+  "packageManager": "pnpm@9.0.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "//": "🇪🇸 NOTA: 'private: true' impide publicar accidentalmente este repo en el registry público de npm. Es obligatorio en la raíz de un monorepo con workspaces.",
+  "scripts": {
+    "//build": "🇪🇸 NOTA: estos scripts son PLACEHOLDERS. Turborepo aún no está instalado (esta sesión es solo estructura). Se activarán cuando hagamos 'pnpm install' en una próxima sesión.",
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "format": "turbo run format"
+  },
+  "devDependencies": {}
+}
