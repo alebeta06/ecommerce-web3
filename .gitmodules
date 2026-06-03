@@ -1,0 +1,6 @@
+[submodule "contracts/euro-token/lib/forge-std"]
+	path = contracts/euro-token/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
+[submodule "contracts/euro-token/lib/openzeppelin-contracts"]
+	path = contracts/euro-token/lib/openzeppelin-contracts
+	url = https://github.com/openzeppelin/openzeppelin-contracts

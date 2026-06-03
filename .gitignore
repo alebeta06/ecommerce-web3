@@ -28,12 +28,12 @@ next-env.d.ts
 # ── Foundry (Solidity) ─────────────────────────────────────────────────────
 # 🇪🇸 NOTA: 'out/' y 'cache/' son artefactos de compilación de Forge.
 # 'broadcast/' guarda el historial de transacciones de despliegue (puede contener
-# datos sensibles de RPC). 'lib/' son dependencias instaladas como git submodules
-# (OpenZeppelin, forge-std) — se reinstalan con 'forge install', no se versionan.
+# datos sensibles de RPC). NO ignoramos 'lib/' porque OpenZeppelin y forge-std
+# están instalados como git submódulos: el archivo .gitmodules versiona el commit
+# exacto de cada dependencia (reproducibilidad con git clone --recursive).
 contracts/**/out/
 contracts/**/cache/
 contracts/**/broadcast/
-contracts/**/lib/
 
 # ── Anvil (nodo local) ─────────────────────────────────────────────────────
 # 🇪🇸 NOTA: Si se persiste el estado de Anvil a disco, estos archivos no deben
@@ -73,7 +73,7 @@ desktop.ini
 logs/
 *.log
 # ── Claude Code & RuFlo (local) ────────────────────────────────────────────
-# 🇪🇩 NOTA: Configuración local de Claude Code y estado de RuFlo. Estos archivos
+# 🇪🇸 NOTA: Configuración local de Claude Code y estado de RuFlo. Estos archivos
 # son específicos de la máquina del desarrollador (settings.local.json, sesiones,
 # AgentDB local). NO se versionan. El archivo CLAUDE.md (en la raíz) SÍ se
 # versiona porque es la guía del proyecto compartida con todo el equipo.
