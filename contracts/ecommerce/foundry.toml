@@ -1,0 +1,35 @@
+# ──────────────────────────────────────────────────────────────────────────
+# 🇪🇸 NOTA: Configuración de Foundry para el contrato Ecommerce (Componente 4).
+# Es "la tienda": empresas, productos, carritos, invoices y pagos en EURT,
+# construida de forma modular con 6 librerías Solidity (internal + using-for).
+# Replica la config validada en contracts/euro-token/ para coherencia del monorepo.
+# Docs: https://book.getfoundry.sh/reference/config/
+# ──────────────────────────────────────────────────────────────────────────
+
+[profile.default]
+src = "src"            # 🇪🇸 contratos fuente (Ecommerce.sol + libraries/)
+out = "out"            # 🇪🇸 artefactos de compilación (ABI, bytecode) — gitignored
+libs = ["lib"]         # 🇪🇸 dependencias (submódulos: OpenZeppelin, forge-std)
+test = "test"          # 🇪🇸 tests en Solidity (Foundry)
+script = "script"      # 🇪🇸 scripts de despliegue
+
+# 🇪🇸 NOTA: solc EXACTO (no '^') para que el bytecode sea reproducible bit a bit.
+# Misma versión que EuroToken; OpenZeppelin Contracts v5 exige >= 0.8.20.
+solc = "0.8.28"
+
+# 🇪🇸 NOTA: el optimizer reduce el gas de ejecución. 200 runs = balance estándar
+# entre coste de despliegue (menos optimización) y coste de uso (más optimización).
+optimizer = true
+optimizer_runs = 200
+
+# 🇪🇸 NOTA: remappings = alias de rutas para los imports de Solidity.
+# "@openzeppelin/" apunta físicamente a lib/openzeppelin-contracts/.
+remappings = [
+    "@openzeppelin/=lib/openzeppelin-contracts/",
+    "forge-std/=lib/forge-std/src/",
+]
+
+# 🇪🇸 NOTA: configuración del formateador (forge fmt), para un estilo consistente.
+[profile.default.fmt]
+line_length = 100
+tab_width = 4
