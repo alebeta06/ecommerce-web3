@@ -14,6 +14,8 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 
 import {CompanyLib} from "./libraries/CompanyLib.sol";
 import {ProductLib} from "./libraries/ProductLib.sol";
+import {CustomerLib} from "./libraries/CustomerLib.sol";
+import {CartLib} from "./libraries/CartLib.sol";
 
 /**
  * @title  Ecommerce
@@ -37,6 +39,10 @@ contract Ecommerce is AccessControl, ReentrancyGuard {
     using CompanyLib for mapping(uint256 => CompanyLib.Company);
     using ProductLib for mapping(uint256 => ProductLib.Product);
     using ProductLib for ProductLib.Product;
+    // 🇪🇸 NOTA: CustomerLib opera sobre el MAPPING (register/get/updateName reciben el mapping como
+    // self). CartLib opera sobre el STRUCT Cart (addItem/removeItem/clear/getItems reciben el Cart).
+    using CustomerLib for mapping(address => CustomerLib.Customer);
+    using CartLib for CartLib.Cart;
 
     // 🇪🇸 NOTA: `immutable` => se fija UNA vez en el constructor y se graba en el bytecode (no en
     // storage), por lo que leerlo es barato. La dirección de EURT nunca cambia tras el deploy.
@@ -53,9 +59,21 @@ contract Ecommerce is AccessControl, ReentrancyGuard {
     // y al front saber qué empresa gestiona una dirección. id 0 = "sin empresa" (centinela).
     mapping(address => uint256) public companyOf;
 
+    // 🇪🇸 NOTA: clientes y carritos son self-service (sin roles): la clave es la wallet del cliente.
+    //  - `customers` es `public` (auto-getter gratis) + `getCustomer` (que revierte si no existe),
+    //    mismo patrón que `companies` + `getCompany`.
+    //  - `carts` DEBE ser `private`: el struct `Cart` contiene un mapping y Solidity no puede generar
+    //    el getter automático de un mapping anidado. Se lee vía `getCart`.
+    mapping(address => CustomerLib.Customer) public customers;
+    mapping(address => CartLib.Cart) private carts;
+
     error InvalidEurtAddress();
     error InvalidAdmin();
     error NotCompanyOwner(uint256 companyId, address caller);
+    // 🇪🇸 NOTA: el carrito denormaliza `companyId` en cada línea. Validamos que coincida con el
+    // `companyId` REAL del producto: sin esto, en checkout (sesión 4) se pagaría a la empresa
+    // equivocada (la línea se trocea por `companyId`). Args ⇒ contexto de depuración.
+    error ProductCompanyMismatch(uint256 companyId, uint256 productId);
 
     /**
      * @param eurtAddress Address of the deployed EURT (EuroToken) ERC20.
@@ -143,9 +161,126 @@ contract Ecommerce is AccessControl, ReentrancyGuard {
      * son secuenciales 1..productCount y no se borran), reutilizando el error de ProductLib.
      */
     function getProduct(uint256 productId) external view returns (ProductLib.Product memory) {
+        _requireProductExists(productId);
+        return products[productId];
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────────────────────
+    // Customers (self-service: the customer is always msg.sender)
+    // ─────────────────────────────────────────────────────────────────────────────────────────
+
+    /**
+     * @notice Register the caller as a customer. The customer IS `msg.sender`.
+     * @param name Display name (non-empty).
+     *
+     * 🇪🇸 NOTA: self-service, sin roles. `CustomerLib.register` valida (wallet≠0, name no vacío,
+     * no re-registro), sella `createdAt` y emite `CustomerRegistered`.
+     */
+    function registerCustomer(string calldata name) external {
+        customers.register(msg.sender, name);
+    }
+
+    /**
+     * @notice Update the caller's display name.
+     * @param newName New display name (non-empty).
+     *
+     * 🇪🇸 NOTA: `updateName` revierte `CustomerNotFound` si el caller no está registrado y emite
+     * `CustomerUpdated`. No añadimos eventos nuevos aquí (ya los emite CustomerLib).
+     */
+    function updateCustomerName(string calldata newName) external {
+        customers.updateName(msg.sender, newName);
+    }
+
+    /**
+     * @notice Read a customer by wallet. Reverts `CustomerNotFound` if not registered.
+     * @param wallet The customer's address.
+     * @return The stored customer (copied to memory for the external return).
+     */
+    function getCustomer(address wallet) external view returns (CustomerLib.Customer memory) {
+        return customers.get(wallet);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────────────────────
+    // Cart (self-service: the cart is always carts[msg.sender])
+    // ─────────────────────────────────────────────────────────────────────────────────────────
+
+    /**
+     * @notice Add `quantity` of a company's product to the caller's cart.
+     * @param companyId Owning company id (must match the product's real company).
+     * @param productId Global product id (must exist).
+     * @param quantity  Amount to add (must be > 0; validated by CartLib).
+     *
+     * 🇪🇸 NOTA — orquestación de la validación cruzada (D1: CartLib es pura, valida AQUÍ):
+     *  1) `customers.get(msg.sender)` exige cliente registrado (D6); revierte CustomerNotFound.
+     *  2) `_requireAddableProduct` valida existencia + coincidencia de empresa.
+     *  3) El stock NO se valida al añadir (D5): se reserva en el checkout (sesión 4).
+     *  4) `cart.addItem` valida `quantity > 0` y acumula si el par ya estaba (D3).
+     */
+    function addToCart(uint256 companyId, uint256 productId, uint256 quantity) external {
+        customers.get(msg.sender);
+        _requireAddableProduct(companyId, productId);
+        carts[msg.sender].addItem(companyId, productId, quantity);
+    }
+
+    /**
+     * @notice Remove a product line from the caller's cart entirely.
+     * @param companyId The line's company id.
+     * @param productId The line's product id.
+     *
+     * 🇪🇸 NOTA: no exigimos registro: un no-registrado nunca pudo añadir nada, así que su carrito
+     * está vacío y `removeItem` revierte `ItemNotInCart`. Mínimo y seguro.
+     */
+    function removeFromCart(uint256 companyId, uint256 productId) external {
+        carts[msg.sender].removeItem(companyId, productId);
+    }
+
+    /**
+     * @notice Empty the caller's cart.
+     *
+     * 🇪🇸 NOTA: idempotente: sobre un carrito vacío es un no-op (CartLib.clear no revierte).
+     */
+    function clearCart() external {
+        carts[msg.sender].clear();
+    }
+
+    /**
+     * @notice Read a wallet's cart lines.
+     * @param wallet The cart owner's address.
+     * @return The cart items copied to memory.
+     */
+    function getCart(address wallet) external view returns (CartLib.CartItem[] memory) {
+        return carts[wallet].getItems();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────────────────────
+    // Internal helpers
+    // ─────────────────────────────────────────────────────────────────────────────────────────
+
+    /**
+     * @dev Revert unless `productId` refers to an existing product.
+     *
+     * 🇪🇸 NOTA: misma condición EXACTA que tenía `getProduct` (ids secuenciales 1..productCount,
+     * no se borran). Extraída para reusarla en `getProduct` y en la validación del carrito.
+     */
+    function _requireProductExists(uint256 productId) private view {
         if (productId == 0 || productId > productCount) {
             revert ProductLib.ProductNotFound(productId);
         }
-        return products[productId];
+    }
+
+    /**
+     * @dev Cross-validate a product before it enters a cart (D1 lives here, not in CartLib).
+     * @param companyId Claimed owning company id.
+     * @param productId Global product id.
+     *
+     * 🇪🇸 NOTA: existencia + coincidencia de empresa. NO validamos `stock` (D5: se reserva en
+     * checkout). La validación de VISIBILIDAD (`product.active`) se DIFIERE a la sesión 4 junto con
+     * `updateProduct` (no hay aún forma de desactivar un producto, así que no es testeable ahora);
+     * el diferimiento es intencional, no un olvido.
+     */
+    function _requireAddableProduct(uint256 companyId, uint256 productId) private view {
+        _requireProductExists(productId);
+        ProductLib.Product storage product = products[productId];
+        if (product.companyId != companyId) revert ProductCompanyMismatch(companyId, productId);
     }
 }
