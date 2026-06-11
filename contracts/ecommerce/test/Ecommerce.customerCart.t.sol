@@ -184,6 +184,24 @@ contract EcommerceCustomerCartTest is Test {
         vm.stopPrank();
     }
 
+    /// @notice addToCart of a deactivated product reverts ProductInactive(productId).
+    /// 🇪🇸 NOTA: `active` = visibilidad/addability. El dueño desactiva vía updateProduct y el
+    /// producto deja de poder entrar al carrito (la rama active=true ya la cubren los happy paths).
+    function test_addToCart_inactive_product_reverts() public {
+        uint256 companyId = _registerCompany(seller, "Acme");
+        uint256 pid = _addProduct(seller, companyId, 5);
+
+        vm.startPrank(seller);
+        ecommerce.updateProduct(companyId, pid, PRICE, 5, false); // deactivate
+        vm.stopPrank();
+
+        vm.startPrank(customer);
+        ecommerce.registerCustomer("Alice");
+        vm.expectRevert(abi.encodeWithSelector(ProductLib.ProductInactive.selector, pid));
+        ecommerce.addToCart(companyId, pid, 1);
+        vm.stopPrank();
+    }
+
     // ── cart: remove / clear / sequences ─────────────────────────────────────────────────────
 
     /// @notice removeFromCart deletes a line; removing an absent line reverts ItemNotInCart.

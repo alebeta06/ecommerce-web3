@@ -26,6 +26,10 @@ contract EcommerceCompanyProductTest is Test {
     string internal constant CID = "QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG";
     uint256 internal constant PRICE = 10e6;
 
+    // 🇪🇸 NOTA: redeclaramos el evento aquí para usarlo en vm.expectEmit. Lo emite ProductLib, pero
+    // al ser librería `internal` se emite desde la dirección del contrato Ecommerce.
+    event ProductUpdated(uint256 indexed id, uint256 price, uint256 stock, bool active);
+
     function setUp() public {
         ecommerce = new Ecommerce(makeAddr("eurt"), admin);
     }
@@ -104,6 +108,108 @@ contract EcommerceCompanyProductTest is Test {
     function test_get_product_unknown_reverts() public {
         vm.expectRevert(abi.encodeWithSelector(ProductLib.ProductNotFound.selector, uint256(99)));
         ecommerce.getProduct(99);
+    }
+
+    // ── updateProduct ──────────────────────────────────────────────────────────────────────────
+
+    /// @dev Register company 1 owned by `seller` and add one product with `stock`; return its id.
+    function _seedProduct(uint256 stock) internal returns (uint256 pid) {
+        vm.startPrank(admin);
+        ecommerce.registerCompany(seller, "Acme", payout);
+        vm.stopPrank();
+        vm.startPrank(seller);
+        pid = ecommerce.addProduct(1, "Widget", CID, PRICE, stock);
+        vm.stopPrank();
+    }
+
+    /// @notice The company owner updates price/stock/active and ProductUpdated is emitted.
+    function test_updateProduct_owner_updates() public {
+        uint256 pid = _seedProduct(5);
+
+        vm.startPrank(seller);
+        vm.expectEmit(true, false, false, true, address(ecommerce));
+        emit ProductUpdated(pid, 20e6, 8, false);
+        ecommerce.updateProduct(1, pid, 20e6, 8, false);
+        vm.stopPrank();
+
+        ProductLib.Product memory p = ecommerce.getProduct(pid);
+        assertEq(p.price, 20e6, "price updated");
+        assertEq(p.stock, 8, "stock updated");
+        assertFalse(p.active, "active updated to false");
+    }
+
+    /// @notice updateProduct preserves name and ipfsCid (only price/stock/active change).
+    function test_updateProduct_preserves_name_and_cid() public {
+        uint256 pid = _seedProduct(5);
+
+        vm.startPrank(seller);
+        ecommerce.updateProduct(1, pid, 20e6, 8, true);
+        vm.stopPrank();
+
+        ProductLib.Product memory p = ecommerce.getProduct(pid);
+        assertEq(p.name, "Widget", "name preserved");
+        assertEq(p.ipfsCid, CID, "ipfsCid preserved");
+    }
+
+    /// @notice A deactivated product can be reactivated (updateProduct does NOT block on inactive).
+    function test_updateProduct_can_reactivate() public {
+        uint256 pid = _seedProduct(5);
+
+        vm.startPrank(seller);
+        ecommerce.updateProduct(1, pid, PRICE, 5, false); // deactivate
+        ecommerce.updateProduct(1, pid, PRICE, 5, true); // reactivate
+        vm.stopPrank();
+
+        assertTrue(ecommerce.getProduct(pid).active, "product reactivated");
+    }
+
+    /// @notice A non-owner cannot update a product (NotCompanyOwner).
+    function test_updateProduct_non_owner_reverts() public {
+        uint256 pid = _seedProduct(5);
+
+        vm.startPrank(stranger);
+        vm.expectRevert(
+            abi.encodeWithSelector(Ecommerce.NotCompanyOwner.selector, uint256(1), stranger)
+        );
+        ecommerce.updateProduct(1, pid, 20e6, 8, true);
+        vm.stopPrank();
+    }
+
+    /// @notice updateProduct on a non-existent product reverts ProductNotFound(id).
+    function test_updateProduct_unknown_product_reverts() public {
+        _seedProduct(5); // company 1 exists & owned by seller
+
+        vm.startPrank(seller);
+        vm.expectRevert(abi.encodeWithSelector(ProductLib.ProductNotFound.selector, uint256(99)));
+        ecommerce.updateProduct(1, 99, 20e6, 8, true);
+        vm.stopPrank();
+    }
+
+    /// @notice updateProduct with a companyId that doesn't own the product reverts ProductCompanyMismatch.
+    function test_updateProduct_company_mismatch_reverts() public {
+        uint256 pid = _seedProduct(5); // product belongs to company 1 (seller)
+
+        // 🇪🇸 NOTA: segunda empresa (id 2) propiedad de `stranger`; el producto sigue siendo de la 1.
+        vm.startPrank(admin);
+        ecommerce.registerCompany(stranger, "Globex", payout);
+        vm.stopPrank();
+
+        vm.startPrank(stranger);
+        vm.expectRevert(
+            abi.encodeWithSelector(Ecommerce.ProductCompanyMismatch.selector, uint256(2), pid)
+        );
+        ecommerce.updateProduct(2, pid, 20e6, 8, true);
+        vm.stopPrank();
+    }
+
+    /// @notice updateProduct with price 0 reverts InvalidPrice (validated in ProductLib).
+    function test_updateProduct_zero_price_reverts() public {
+        uint256 pid = _seedProduct(5);
+
+        vm.startPrank(seller);
+        vm.expectRevert(ProductLib.InvalidPrice.selector);
+        ecommerce.updateProduct(1, pid, 0, 8, true);
+        vm.stopPrank();
     }
 
     /// @notice Deploying with a zero EURT address reverts InvalidEurtAddress().

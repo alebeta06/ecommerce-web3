@@ -165,6 +165,32 @@ contract Ecommerce is AccessControl, ReentrancyGuard {
         return products[productId];
     }
 
+    /**
+     * @notice Update a product's price, stock and visibility. Only that company's owner can call.
+     * @param companyId The owning company id.
+     * @param productId The product id (must belong to `companyId`).
+     * @param newPrice  New unit price in EURT base units (6 decimals, > 0).
+     * @param newStock  New absolute stock (0 allowed).
+     * @param active    New visibility flag (true = visible/addable, false = hidden).
+     *
+     * 🇪🇸 NOTA: este endpoint NO edita `name` ni `ipfsCid` (se preservan); reusa
+     * `ProductLib.update()` pasándole los valores actuales de esos campos. Usamos
+     * `_requireCompanyProduct` (existencia + pertenencia) y NO `_requireAddableProduct`: este último
+     * revierte en productos inactivos, lo que haría IMPOSIBLE reactivar uno. El control de acceso
+     * es por empresa: `onlyCompanyOwner` valida `msg.sender == company.owner`. La lib valida
+     * `price > 0` y emite `ProductUpdated` (no añadimos evento aquí).
+     */
+    function updateProduct(
+        uint256 companyId,
+        uint256 productId,
+        uint256 newPrice,
+        uint256 newStock,
+        bool active
+    ) external onlyCompanyOwner(companyId) {
+        ProductLib.Product storage product = _requireCompanyProduct(companyId, productId);
+        product.update(product.name, product.ipfsCid, newPrice, newStock, active);
+    }
+
     // ─────────────────────────────────────────────────────────────────────────────────────────
     // Customers (self-service: the customer is always msg.sender)
     // ─────────────────────────────────────────────────────────────────────────────────────────
@@ -269,18 +295,37 @@ contract Ecommerce is AccessControl, ReentrancyGuard {
     }
 
     /**
+     * @dev Resolve a product that exists AND belongs to `companyId`, returning its storage ref.
+     * @param companyId Claimed owning company id.
+     * @param productId Global product id.
+     * @return product  Storage reference to the validated product.
+     *
+     * 🇪🇸 NOTA: existencia + coincidencia de empresa, SIN chequear `active`. Es la base compartida
+     * por `_requireAddableProduct` (carrito) y `updateProduct`. Este último NO puede exigir `active`
+     * porque entonces sería imposible reactivar un producto desactivado.
+     */
+    function _requireCompanyProduct(uint256 companyId, uint256 productId)
+        private
+        view
+        returns (ProductLib.Product storage product)
+    {
+        _requireProductExists(productId);
+        product = products[productId];
+        if (product.companyId != companyId) revert ProductCompanyMismatch(companyId, productId);
+    }
+
+    /**
      * @dev Cross-validate a product before it enters a cart (D1 lives here, not in CartLib).
      * @param companyId Claimed owning company id.
      * @param productId Global product id.
      *
-     * 🇪🇸 NOTA: existencia + coincidencia de empresa. NO validamos `stock` (D5: se reserva en
-     * checkout). La validación de VISIBILIDAD (`product.active`) se DIFIERE a la sesión 4 junto con
-     * `updateProduct` (no hay aún forma de desactivar un producto, así que no es testeable ahora);
-     * el diferimiento es intencional, no un olvido.
+     * 🇪🇸 NOTA: existencia + empresa (vía `_requireCompanyProduct`) + VISIBILIDAD (`active`). NO
+     * validamos `stock` aquí: separamos responsabilidades — `active` = addability/visibilidad (se
+     * exige al añadir al carrito), `stock` = comprabilidad (se reserva en checkout, D5). Un producto
+     * inactivo no puede entrar al carrito; revierte `ProductInactive`.
      */
     function _requireAddableProduct(uint256 companyId, uint256 productId) private view {
-        _requireProductExists(productId);
-        ProductLib.Product storage product = products[productId];
-        if (product.companyId != companyId) revert ProductCompanyMismatch(companyId, productId);
+        ProductLib.Product storage product = _requireCompanyProduct(companyId, productId);
+        if (!product.active) revert ProductLib.ProductInactive(productId);
     }
 }
