@@ -80,9 +80,7 @@ contract EcommerceCustomerCartTest is Test {
 
     /// @notice getCustomer on an unregistered wallet reverts CustomerNotFound(wallet).
     function test_getCustomer_unregistered_reverts() public {
-        vm.expectRevert(
-            abi.encodeWithSelector(CustomerLib.CustomerNotFound.selector, customer)
-        );
+        vm.expectRevert(abi.encodeWithSelector(CustomerLib.CustomerNotFound.selector, customer));
         ecommerce.getCustomer(customer);
     }
 
@@ -100,9 +98,7 @@ contract EcommerceCustomerCartTest is Test {
     /// @notice updateCustomerName by an unregistered caller reverts CustomerNotFound(caller).
     function test_updateCustomerName_unregistered_reverts() public {
         vm.startPrank(customer);
-        vm.expectRevert(
-            abi.encodeWithSelector(CustomerLib.CustomerNotFound.selector, customer)
-        );
+        vm.expectRevert(abi.encodeWithSelector(CustomerLib.CustomerNotFound.selector, customer));
         ecommerce.updateCustomerName("Alicia");
         vm.stopPrank();
     }
@@ -141,9 +137,7 @@ contract EcommerceCustomerCartTest is Test {
         uint256 pid = _addProduct(seller, companyId, 5);
 
         vm.startPrank(customer);
-        vm.expectRevert(
-            abi.encodeWithSelector(CustomerLib.CustomerNotFound.selector, customer)
-        );
+        vm.expectRevert(abi.encodeWithSelector(CustomerLib.CustomerNotFound.selector, customer));
         ecommerce.addToCart(companyId, pid, 1);
         vm.stopPrank();
     }
