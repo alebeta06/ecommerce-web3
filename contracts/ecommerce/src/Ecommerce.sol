@@ -6,8 +6,8 @@ pragma solidity 0.8.28;
 //  - AccessControl:   control de acceso por ROLES (bytes32), no por un único owner.
 //  - IERC20:          la INTERFAZ del token EURT. Solo necesitamos su firma (transferFrom,
 //                     balanceOf, allowance…), NO el bytecode de EuroToken => bajo acoplamiento.
-//  - ReentrancyGuard: provee el modifier `nonReentrant`. Se hereda ya (lo usará processPayment
-//                     en la sesión 4); reservar su slot ahora deja la base lista.
+//  - ReentrancyGuard: provee el modifier `nonReentrant`, que protege `checkout` (hace transfers
+//                     externos de EURT al final, patrón CEI).
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
@@ -16,14 +16,16 @@ import {CompanyLib} from "./libraries/CompanyLib.sol";
 import {ProductLib} from "./libraries/ProductLib.sol";
 import {CustomerLib} from "./libraries/CustomerLib.sol";
 import {CartLib} from "./libraries/CartLib.sol";
+import {InvoiceLib} from "./libraries/InvoiceLib.sol";
+import {PaymentLib} from "./libraries/PaymentLib.sol";
 
 /**
  * @title  Ecommerce
- * @notice On-chain store logic (Component 4): companies and their products, settled in EURT.
- *         This is the BASE version (session 2): company registration + product catalog. Carts,
- *         invoices and payments arrive in later sessions.
+ * @notice On-chain store logic (Component 4): companies and their products, customers, on-chain
+ *         carts, and a checkout that issues one invoice per company and settles each in EURT.
  * @dev    Orchestrator that OWNS all storage and delegates entity logic to internal libraries
- *         (`CompanyLib`, `ProductLib`) via `using-for`. Access is role-based (AccessControl).
+ *         (`CompanyLib`, `ProductLib`, `CustomerLib`, `CartLib`, `InvoiceLib`, `PaymentLib`) via
+ *         `using-for`. Access is role-based (AccessControl); `checkout` is `nonReentrant` (CEI).
  *
  * 🇪🇸 NOTA — AccessControl vs Ownable (recordatorio):
  *  - Ownable (usado en EuroToken) = UN solo `owner` con todos los privilegios. Simple.
@@ -43,6 +45,10 @@ contract Ecommerce is AccessControl, ReentrancyGuard {
     // self). CartLib opera sobre el STRUCT Cart (addItem/removeItem/clear/getItems reciben el Cart).
     using CustomerLib for mapping(address => CustomerLib.Customer);
     using CartLib for CartLib.Cart;
+    // 🇪🇸 NOTA: InvoiceLib opera sobre su struct `Storage` (invoiceData.create/get/...). PaymentLib
+    // se adjunta a IERC20 para escribir `eurt.collect(from, to, amount)` en el checkout.
+    using InvoiceLib for InvoiceLib.Storage;
+    using PaymentLib for IERC20;
 
     // 🇪🇸 NOTA: `immutable` => se fija UNA vez en el constructor y se graba en el bytecode (no en
     // storage), por lo que leerlo es barato. La dirección de EURT nunca cambia tras el deploy.
@@ -67,6 +73,11 @@ contract Ecommerce is AccessControl, ReentrancyGuard {
     mapping(address => CustomerLib.Customer) public customers;
     mapping(address => CartLib.Cart) private carts;
 
+    // 🇪🇸 NOTA: raíz de storage de facturas (mappings + contador `invoiceCount`). `private` como
+    // `carts` porque el struct contiene mappings (sin auto-getter); se lee vía getInvoice/getter de ids.
+    // No requiere init en el constructor: `invoiceCount` arranca en 0 y `create` pre-incrementa.
+    InvoiceLib.Storage private invoiceData;
+
     error InvalidEurtAddress();
     error InvalidAdmin();
     error NotCompanyOwner(uint256 companyId, address caller);
@@ -74,6 +85,9 @@ contract Ecommerce is AccessControl, ReentrancyGuard {
     // `companyId` REAL del producto: sin esto, en checkout (sesión 4) se pagaría a la empresa
     // equivocada (la línea se trocea por `companyId`). Args ⇒ contexto de depuración.
     error ProductCompanyMismatch(uint256 companyId, uint256 productId);
+    // 🇪🇸 NOTA: checkout sobre un carrito vacío no tiene nada que liquidar (incluye al no-registrado,
+    // cuyo carrito siempre está vacío). El stock insuficiente reutiliza ProductLib.InsufficientStock.
+    error EmptyCart();
 
     /**
      * @param eurtAddress Address of the deployed EURT (EuroToken) ERC20.
@@ -279,6 +293,72 @@ contract Ecommerce is AccessControl, ReentrancyGuard {
     }
 
     // ─────────────────────────────────────────────────────────────────────────────────────────
+    // Checkout & invoices
+    // ─────────────────────────────────────────────────────────────────────────────────────────
+
+    /**
+     * @notice Settle the caller's cart: issue one invoice per company and pay each seller in EURT.
+     *
+     * 🇪🇸 NOTA — atómico (todo-o-nada), CEI estricto, protegido con `nonReentrant`:
+     *  - EFFECTS: por cada empresa presente en el carrito se decrementa stock (validándolo dentro de
+     *    `decreaseStock`) y se crea UNA factura con `unitPrice` = snapshot del precio ACTUAL del
+     *    producto (en el momento del checkout); después se vacía el carrito.
+     *  - INTERACTIONS: al final se cobra el total de cada empresa a su `payoutWallet` (pull de EURT).
+     *  - Atomicidad por revert de la EVM: si el cobro de una empresa falla (p.ej. sin allowance), se
+     *    deshace TODO — stock, facturas y los cobros ya hechos a empresas anteriores —. No hay
+     *    pre-pasada de checks: el stock se valida una sola vez, dentro de `decreaseStock`.
+     */
+    function checkout() external nonReentrant {
+        address customer = msg.sender;
+        CartLib.CartItem[] memory items = carts[customer].getItems();
+        uint256 n = items.length;
+        if (n == 0) revert EmptyCart();
+
+        // EFFECTS: una factura por empresa distinta (dos pasadas para agrupar por empresa).
+        uint256[] memory companyIds = new uint256[](n);
+        uint256 companyN = _distinctCompanies(items, companyIds);
+
+        uint256[] memory totals = new uint256[](companyN);
+        for (uint256 c = 0; c < companyN; c++) {
+            totals[c] = _issueInvoice(customer, items, companyIds[c]);
+        }
+
+        carts[customer].clear();
+
+        // INTERACTIONS: cobro a cada empresa, después de TODOS los effects.
+        for (uint256 c = 0; c < companyN; c++) {
+            eurt.collect(customer, _treasuryOf(companyIds[c]), totals[c]);
+        }
+    }
+
+    /**
+     * @notice Read an invoice by id. Reverts `InvoiceNotFound` if it does not exist.
+     * @param invoiceId The invoice id.
+     * @return The stored invoice (copied to memory for the external return).
+     */
+    function getInvoice(uint256 invoiceId) external view returns (InvoiceLib.Invoice memory) {
+        return invoiceData.get(invoiceId);
+    }
+
+    /**
+     * @notice Read the invoice ids issued to a customer (purchase history).
+     * @param customer The buyer's address.
+     * @return The customer's invoice ids.
+     */
+    function getCustomerInvoices(address customer) external view returns (uint256[] memory) {
+        return invoiceData.customerInvoiceIds(customer);
+    }
+
+    /**
+     * @notice Read the invoice ids billed to a company (the seller's own invoices).
+     * @param companyId The selling company id.
+     * @return The company's invoice ids.
+     */
+    function getCompanyInvoices(uint256 companyId) external view returns (uint256[] memory) {
+        return invoiceData.companyInvoiceIds(companyId);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────────────────────
     // Internal helpers
     // ─────────────────────────────────────────────────────────────────────────────────────────
 
@@ -327,5 +407,84 @@ contract Ecommerce is AccessControl, ReentrancyGuard {
     function _requireAddableProduct(uint256 companyId, uint256 productId) private view {
         ProductLib.Product storage product = _requireCompanyProduct(companyId, productId);
         if (!product.active) revert ProductLib.ProductInactive(productId);
+    }
+
+    /**
+     * @dev Collect the DISTINCT company ids present in `items` into `out`; return how many.
+     * @param items Cart lines to scan.
+     * @param out   Output buffer (sized to items.length, an upper bound); filled with distinct ids.
+     * @return count Number of distinct companies written to `out`.
+     *
+     * 🇪🇸 NOTA: bucle anidado O(n²) con n acotado por el tamaño del carrito. Marca "ya visto"
+     * comparando cada `companyId` contra los ids ya recogidos en `out[0..count)`.
+     */
+    function _distinctCompanies(CartLib.CartItem[] memory items, uint256[] memory out)
+        private
+        pure
+        returns (uint256 count)
+    {
+        for (uint256 i = 0; i < items.length; i++) {
+            uint256 cid = items[i].companyId;
+            bool seen = false;
+            for (uint256 j = 0; j < count; j++) {
+                if (out[j] == cid) {
+                    seen = true;
+                    break;
+                }
+            }
+            if (!seen) {
+                out[count] = cid;
+                count++;
+            }
+        }
+    }
+
+    /**
+     * @dev Build and create the invoice for `companyId` from its cart lines; return its total.
+     * @param customer  The buyer.
+     * @param items     All cart lines (the function filters those of `companyId`).
+     * @param companyId The company being invoiced.
+     * @return total    The invoice total (computed and stored by `InvoiceLib.create`).
+     *
+     * 🇪🇸 NOTA: dos recorridos sobre `items` — uno para CONTAR las líneas de la empresa (dimensionar
+     * el array `memory`, que no se puede redimensionar) y otro para LLENARLAS. Por cada línea:
+     * snapshot de `product.price` como `unitPrice` y `decreaseStock(qty)` (valida stock y decrementa).
+     * `create` computa y almacena el total (fuente única); lo releemos de la factura para el cobro,
+     * porque `create` devuelve solo el id.
+     */
+    function _issueInvoice(address customer, CartLib.CartItem[] memory items, uint256 companyId)
+        private
+        returns (uint256 total)
+    {
+        uint256 count = 0;
+        for (uint256 i = 0; i < items.length; i++) {
+            if (items[i].companyId == companyId) count++;
+        }
+
+        InvoiceLib.InvoiceLine[] memory lines = new InvoiceLib.InvoiceLine[](count);
+        uint256 k = 0;
+        for (uint256 i = 0; i < items.length; i++) {
+            if (items[i].companyId != companyId) continue;
+            uint256 productId = items[i].productId;
+            uint256 qty = items[i].quantity;
+            ProductLib.Product storage product = products[productId];
+            lines[k++] = InvoiceLib.InvoiceLine({
+                productId: productId, quantity: qty, unitPrice: product.price
+            });
+            product.decreaseStock(qty);
+        }
+
+        uint256 id = invoiceData.create(customer, companyId, lines);
+        total = invoiceData.invoices[id].total;
+    }
+
+    /**
+     * @dev The wallet that receives a company's payments (its `payoutWallet`).
+     *
+     * 🇪🇸 NOTA: `companies.get` revierte CompanyNotFound si no existe; aquí siempre existe (el carrito
+     * solo contiene productos de empresas registradas). El pago va a `payoutWallet`, NO al `owner`.
+     */
+    function _treasuryOf(uint256 companyId) private view returns (address) {
+        return companies.get(companyId).payoutWallet;
     }
 }
