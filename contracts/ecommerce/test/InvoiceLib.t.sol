@@ -7,17 +7,13 @@ import {InvoiceLib} from "../src/libraries/InvoiceLib.sol";
 /**
  * @title  InvoiceLibHarness
  * @notice Test-only storage owner exposing `external` wrappers over InvoiceLib's internal funcs.
- * @dev    Initializes `nextInvoiceId = 1` in the constructor, mirroring what the `Ecommerce`
- *         constructor will do (the counter must start at 1 so the first invoice id is 1).
+ * @dev    No constructor init: `invoiceCount` starts at 0 (default) and `create` pre-increments it,
+ *         so the first invoice id is 1 (same pattern as companyCount/productCount).
  */
 contract InvoiceLibHarness {
     using InvoiceLib for InvoiceLib.Storage;
 
     InvoiceLib.Storage internal store;
-
-    constructor() {
-        store.nextInvoiceId = 1;
-    }
 
     function create(address customer, uint256 companyId, InvoiceLib.InvoiceLine[] calldata lines)
         external
@@ -30,8 +26,8 @@ contract InvoiceLibHarness {
         return store.get(id);
     }
 
-    function nextInvoiceId() external view returns (uint256) {
-        return store.nextInvoiceId;
+    function invoiceCount() external view returns (uint256) {
+        return store.invoiceCount;
     }
 
     function customerInvoiceIds(address customer) external view returns (uint256[] memory) {
@@ -73,16 +69,16 @@ contract InvoiceLibTest is Test {
 
     // ── create ───────────────────────────────────────────────────────────────────────────────
 
-    /// @notice The counter starts at 1; create assigns sequential ids and advances nextInvoiceId.
+    /// @notice The counter starts at 0; create pre-increments it, assigning sequential ids from 1.
     function test_create_assigns_sequential_ids() public {
-        assertEq(harness.nextInvoiceId(), 1, "counter starts at 1");
+        assertEq(harness.invoiceCount(), 0, "counter starts at 0");
 
         uint256 id1 = harness.create(customer, COMPANY_ID, _twoLines());
         uint256 id2 = harness.create(customer, COMPANY_ID, _twoLines());
 
         assertEq(id1, 1, "first id is 1");
         assertEq(id2, 2, "second id is 2");
-        assertEq(harness.nextInvoiceId(), 3, "nextInvoiceId advanced to 3");
+        assertEq(harness.invoiceCount(), 2, "invoiceCount advanced to 2");
     }
 
     /// @notice create computes total = sum(unitPrice * quantity) and stores all fields + lines.
@@ -144,7 +140,7 @@ contract InvoiceLibTest is Test {
 
     /// @notice get of an id >= nextInvoiceId reverts InvoiceNotFound(id) (never issued).
     function test_get_unissued_reverts() public {
-        harness.create(customer, COMPANY_ID, _twoLines()); // nextInvoiceId becomes 2
+        harness.create(customer, COMPANY_ID, _twoLines()); // invoiceCount becomes 1
         vm.expectRevert(abi.encodeWithSelector(InvoiceLib.InvoiceNotFound.selector, uint256(99)));
         harness.get(99);
     }

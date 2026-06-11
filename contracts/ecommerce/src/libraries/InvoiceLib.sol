@@ -53,18 +53,18 @@ library InvoiceLib {
      * @dev    `invoices`         = id => Invoice.
      *         `customerInvoices` = customer => issued invoice ids (history for the buyer).
      *         `companyInvoices`  = companyId => issued invoice ids (each seller sees only its own).
-     *         `nextInvoiceId`    = next id to assign; MUST be initialized to 1 by the owner.
+     *         `invoiceCount`     = number of invoices issued so far; also the last assigned id.
      *
-     * 🇪🇸 NOTA — `nextInvoiceId` arranca en 1 (lo inicializa el dueño del Storage: el constructor de
-     * `Ecommerce`, o el harness en los tests). Con post-incremento `nextInvoiceId++`, la primera
-     * factura recibe el id 1 y dejamos el 0 como centinela "no existe" (lo usa `get`). Si no se
-     * inicializa, la primera factura tomaría el id 0 y sería irrecuperable: por eso es obligatorio.
+     * 🇪🇸 NOTA — `invoiceCount` arranca en 0 (default) y `create` usa PRE-incremento
+     * `++invoiceCount`, así que la primera factura recibe el id 1 y el 0 queda como centinela
+     * "no existe" (lo usa `get`). Es el MISMO patrón que `companyCount`/`productCount` en
+     * `Ecommerce`: no requiere inicialización en el constructor.
      */
     struct Storage {
         mapping(uint256 => Invoice) invoices;
         mapping(address => uint256[]) customerInvoices;
         mapping(uint256 => uint256[]) companyInvoices;
-        uint256 nextInvoiceId;
+        uint256 invoiceCount;
     }
 
     /**
@@ -97,7 +97,7 @@ library InvoiceLib {
         uint256 companyId,
         InvoiceLine[] memory lines
     ) internal returns (uint256 id) {
-        id = self.nextInvoiceId++;
+        id = ++self.invoiceCount;
 
         Invoice storage invoice = self.invoices[id];
         invoice.id = id;
@@ -125,11 +125,11 @@ library InvoiceLib {
      * @param id   The invoice id.
      * @return invoice Storage reference to the stored invoice.
      *
-     * 🇪🇸 NOTA: existencia por rango del contador (ids secuenciales 1..nextInvoiceId-1, nunca se
-     * borran), igual que productos. `id == 0` y `id >= nextInvoiceId` son inexistentes.
+     * 🇪🇸 NOTA: existencia por rango del contador (ids secuenciales 1..invoiceCount, nunca se
+     * borran), igual que productos. `id == 0` y `id > invoiceCount` son inexistentes.
      */
     function get(Storage storage self, uint256 id) internal view returns (Invoice storage invoice) {
-        if (id == 0 || id >= self.nextInvoiceId) revert InvoiceNotFound(id);
+        if (id == 0 || id > self.invoiceCount) revert InvoiceNotFound(id);
         invoice = self.invoices[id];
     }
 
