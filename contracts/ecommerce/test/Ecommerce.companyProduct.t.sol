@@ -110,6 +110,33 @@ contract EcommerceCompanyProductTest is Test {
         ecommerce.getProduct(99);
     }
 
+    // ── getAllProducts ─────────────────────────────────────────────────────────────────────────
+
+    /// @notice getAllProducts returns every product in id order with the correct fields.
+    function test_getAllProducts_returns_all() public {
+        vm.prank(admin);
+        ecommerce.registerCompany(seller, "Acme", payout);
+
+        vm.startPrank(seller);
+        ecommerce.addProduct(1, "Widget", CID, PRICE, 5); // id 1
+        ecommerce.addProduct(1, "Gadget", CID, 20e6, 3); // id 2
+        vm.stopPrank();
+
+        ProductLib.Product[] memory all = ecommerce.getAllProducts();
+        assertEq(all.length, 2, "two products");
+        assertEq(all[0].id, 1, "all[0] id");
+        assertEq(all[0].name, "Widget", "all[0] name");
+        assertEq(all[0].price, PRICE, "all[0] price");
+        assertEq(all[1].id, 2, "all[1] id");
+        assertEq(all[1].name, "Gadget", "all[1] name");
+        assertEq(all[1].stock, 3, "all[1] stock");
+    }
+
+    /// @notice With no products, getAllProducts returns an empty array (covers the productCount==0 path).
+    function test_getAllProducts_empty() public view {
+        assertEq(ecommerce.getAllProducts().length, 0, "empty catalog");
+    }
+
     // ── updateProduct ──────────────────────────────────────────────────────────────────────────
 
     /// @dev Register company 1 owned by `seller` and add one product with `stock`; return its id.

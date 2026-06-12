@@ -190,6 +190,23 @@ contract Ecommerce is AccessControl, ReentrancyGuard {
     }
 
     /**
+     * @notice Read the whole catalog: every product ever added, in id order.
+     * @return all An array with all products (the front-end filters by `active` for display).
+     *
+     * 🇪🇸 NOTA: los ids son secuenciales 1..productCount y no se borran, así que dimensionamos el
+     * array `memory` EXACTAMENTE a `productCount` y lo rellenamos POR ÍNDICE: no se puede hacer `push`
+     * sobre un array en memoria (su tamaño es fijo tras `new`). El producto de id `i+1` va en `all[i]`.
+     * Devolvemos TODOS (activos e inactivos); el frontend (web-customer) filtra por `active` para el
+     * catálogo. Si `productCount == 0`, `new Product[](0)` ya es un array vacío válido.
+     */
+    function getAllProducts() external view returns (ProductLib.Product[] memory all) {
+        all = new ProductLib.Product[](productCount);
+        for (uint256 i = 0; i < productCount; i++) {
+            all[i] = products[i + 1];
+        }
+    }
+
+    /**
      * @notice Update a product's price, stock and visibility. Only that company's owner can call.
      * @param companyId The owning company id.
      * @param productId The product id (must belong to `companyId`).
