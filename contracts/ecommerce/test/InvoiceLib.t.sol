@@ -22,6 +22,10 @@ contract InvoiceLibHarness {
         id = store.create(customer, companyId, lines);
     }
 
+    function markPaid(uint256 id) external {
+        store.markPaid(id);
+    }
+
     function get(uint256 id) external view returns (InvoiceLib.Invoice memory) {
         return store.get(id);
     }
@@ -143,5 +147,34 @@ contract InvoiceLibTest is Test {
         harness.create(customer, COMPANY_ID, _twoLines()); // invoiceCount becomes 1
         vm.expectRevert(abi.encodeWithSelector(InvoiceLib.InvoiceNotFound.selector, uint256(99)));
         harness.get(99);
+    }
+
+    // ── markPaid ─────────────────────────────────────────────────────────────────────────────
+
+    /// @notice A freshly created invoice starts unpaid (phase-1 semantics: created at checkout).
+    function test_create_invoice_starts_unpaid() public {
+        uint256 id = harness.create(customer, COMPANY_ID, _twoLines());
+        assertFalse(harness.get(id).isPaid, "new invoice is unpaid");
+    }
+
+    /// @notice markPaid flips isPaid to true (phase-2 settlement).
+    function test_markPaid_sets_flag() public {
+        uint256 id = harness.create(customer, COMPANY_ID, _twoLines());
+        harness.markPaid(id);
+        assertTrue(harness.get(id).isPaid, "invoice marked paid");
+    }
+
+    /// @notice markPaid on an already-paid invoice reverts InvoiceAlreadyPaid(id).
+    function test_markPaid_twice_reverts() public {
+        uint256 id = harness.create(customer, COMPANY_ID, _twoLines());
+        harness.markPaid(id);
+        vm.expectRevert(abi.encodeWithSelector(InvoiceLib.InvoiceAlreadyPaid.selector, id));
+        harness.markPaid(id);
+    }
+
+    /// @notice markPaid on a non-existent id reverts InvoiceNotFound(id) (reused from get).
+    function test_markPaid_nonexistent_reverts() public {
+        vm.expectRevert(abi.encodeWithSelector(InvoiceLib.InvoiceNotFound.selector, uint256(99)));
+        harness.markPaid(99);
     }
 }

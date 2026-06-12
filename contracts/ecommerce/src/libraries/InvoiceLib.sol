@@ -11,13 +11,18 @@ pragma solidity 0.8.28;
  * 🇪🇸 NOTA — modelo multi-vendor (1 factura por empresa):
  *  - `checkout` agrupa el carrito por empresa y llama `create` una vez por empresa presente. Cada
  *    `Invoice` lista SOLO los productos de esa empresa y su `total` se cobra a su `payoutWallet`.
- *  - NO hay campo `paid`: la EXISTENCIA de la factura ya significa "pagada" (se crea dentro del
- *    checkout atómico, después de cobrar). Si el pago revierte, la factura no llega a existir.
+ *
+ * 🇪🇸 NOTA — pago en DOS FASES (`isPaid`):
+ *  - Fase 1 (`checkout`): la factura nace IMPAGA (`isPaid=false`) con `unitPrice` congelado al precio
+ *    del momento. NO se cobra EURT ni se toca stock todavía.
+ *  - Fase 2 (`processPayment`, la pasarela): `markPaid` voltea `isPaid` a `true`; el orquestador
+ *    `Ecommerce` cobra EURT y decrementa stock. Una factura ya pagada no puede re-pagarse
+ *    (`InvoiceAlreadyPaid`).
  *
  * 🇪🇸 NOTA — `total` como fuente única de verdad:
  *  - `create` COMPUTA `total = Σ(unitPrice * quantity)` a partir de las líneas y lo almacena; nadie
- *    lo pasa desde fuera. Así el invariante `total == suma de líneas` vive aquí y `checkout` lee el
- *    importe a cobrar de la propia factura creada.
+ *    lo pasa desde fuera. Así el invariante `total == suma de líneas` vive aquí y el pago lee el
+ *    importe a cobrar de la propia factura.
  */
 library InvoiceLib {
     /**
@@ -32,9 +37,10 @@ library InvoiceLib {
     }
 
     /**
-     * @notice An issued invoice: one customer, one company, its billed lines and the total paid.
-     * @dev    `id` is sequential (1..). No `paid` flag by design (existence = paid). `createdAt` is
-     *         the block timestamp at creation.
+     * @notice An issued invoice: one customer, one company, its billed lines, the total and whether
+     *         it has already been paid.
+     * @dev    `id` is sequential (1..). `isPaid` is created `false` at checkout (phase 1) and flipped
+     *         to `true` in phase-2 `processPayment`. `createdAt` is the block timestamp at creation.
      *
      * 🇪🇸 NOTA: un struct con un array dinámico SÍ puede devolverse en `memory` (a diferencia de uno
      * con `mapping`). Por eso `get` puede exponer la `Invoice` completa hacia el exterior.
@@ -46,6 +52,7 @@ library InvoiceLib {
         InvoiceLine[] lines;
         uint256 total;
         uint256 createdAt;
+        bool isPaid;
     }
 
     /**
@@ -75,8 +82,10 @@ library InvoiceLib {
         uint256 indexed id, address indexed customer, uint256 indexed companyId, uint256 total
     );
 
-    // 🇪🇸 NOTA: único error de la lib. Transporta el `id` consultado para depurar lecturas inválidas.
+    // 🇪🇸 NOTA: transporta el `id` consultado para depurar lecturas inválidas.
     error InvoiceNotFound(uint256 id);
+    // 🇪🇸 NOTA: una factura solo se paga una vez; el segundo intento revierte con su `id`.
+    error InvoiceAlreadyPaid(uint256 id);
 
     /**
      * @notice Create one invoice for `customer`/`companyId` from its billed lines.
@@ -117,6 +126,23 @@ library InvoiceLib {
         self.companyInvoices[companyId].push(id);
 
         emit InvoiceCreated(id, customer, companyId, total);
+    }
+
+    /**
+     * @notice Mark invoice `id` as paid (phase-2 settlement). Reverts `InvoiceNotFound` if it does
+     *         not exist or `InvoiceAlreadyPaid` if it was already settled.
+     * @param self Storage reference to the invoice root.
+     * @param id   The invoice id being settled.
+     *
+     * 🇪🇸 NOTA: SOLO voltea el flag `isPaid`. Reusa `get` (que revierte `InvoiceNotFound` si el id no
+     * existe), así no duplicamos la comprobación de existencia. El cobro de EURT y el descuento de
+     * stock los orquesta `Ecommerce.processPayment`: la lib NO llama a otras libs (ProductLib/
+     * PaymentLib) por diseño (las libs no se llaman entre sí; coordina el contrato).
+     */
+    function markPaid(Storage storage self, uint256 id) internal {
+        Invoice storage invoice = get(self, id);
+        if (invoice.isPaid) revert InvoiceAlreadyPaid(id);
+        invoice.isPaid = true;
     }
 
     /**
