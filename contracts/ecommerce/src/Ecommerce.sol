@@ -88,6 +88,16 @@ contract Ecommerce is AccessControl, ReentrancyGuard {
     // 🇪🇸 NOTA: checkout sobre un carrito vacío no tiene nada que liquidar (incluye al no-registrado,
     // cuyo carrito siempre está vacío). El stock insuficiente reutiliza ProductLib.InsufficientStock.
     error EmptyCart();
+    // 🇪🇸 NOTA: pagar (fase 2) una factura que NO es del caller. Args ⇒ contexto de depuración.
+    error NotInvoiceCustomer(uint256 invoiceId, address caller);
+    // 🇪🇸 NOTA: lote de pago vacío no tiene nada que liquidar; error del caller, simétrico con EmptyCart.
+    error EmptyBatch();
+
+    // 🇪🇸 NOTA — evento de pago (fase 2): se emite en el ORQUESTADOR, no en PaymentLib, porque el pago
+    // es una operación del contrato (cobra EURT + descuenta stock + marca la factura). NO añadimos un
+    // campo `paymentTxHash`: un contrato NO puede leer su propio hash de transacción; el frontend lo
+    // obtiene del receipt. `invoiceId` y `payer` van indexados para filtrar off-chain; `total` es dato.
+    event InvoicePaid(uint256 indexed invoiceId, address indexed payer, uint256 total);
 
     /**
      * @param eurtAddress Address of the deployed EURT (EuroToken) ERC20.
@@ -293,41 +303,73 @@ contract Ecommerce is AccessControl, ReentrancyGuard {
     }
 
     // ─────────────────────────────────────────────────────────────────────────────────────────
-    // Checkout & invoices
+    // Checkout (phase 1) & payment (phase 2)
     // ─────────────────────────────────────────────────────────────────────────────────────────
 
     /**
-     * @notice Settle the caller's cart: issue one invoice per company and pay each seller in EURT.
+     * @notice Phase 1 — issue one UNPAID invoice per company from the caller's cart and return the
+     *         new invoice ids. Does NOT move EURT and does NOT touch stock.
+     * @return invoiceIds The ids of the invoices created (one per distinct company in the cart).
      *
-     * 🇪🇸 NOTA — atómico (todo-o-nada), CEI estricto, protegido con `nonReentrant`:
-     *  - EFFECTS: por cada empresa presente en el carrito se decrementa stock (validándolo dentro de
-     *    `decreaseStock`) y se crea UNA factura con `unitPrice` = snapshot del precio ACTUAL del
-     *    producto (en el momento del checkout); después se vacía el carrito.
-     *  - INTERACTIONS: al final se cobra el total de cada empresa a su `payoutWallet` (pull de EURT).
-     *  - Atomicidad por revert de la EVM: si el cobro de una empresa falla (p.ej. sin allowance), se
-     *    deshace TODO — stock, facturas y los cobros ya hechos a empresas anteriores —. No hay
-     *    pre-pasada de checks: el stock se valida una sola vez, dentro de `decreaseStock`.
+     * 🇪🇸 NOTA — fase 1 (la llama web-customer): el carrito se agrupa por empresa y se crea UNA
+     * factura IMPAGA por empresa, con `unitPrice` = snapshot del precio ACTUAL del producto (se
+     * CONGELA aquí: cambios de precio posteriores no alteran la factura). Después se vacía el carrito y
+     * se devuelven los ids. NO se cobra EURT ni se decrementa stock: eso ocurre en la fase 2
+     * (`processPayment`, la pasarela). Por eso ya NO necesita `nonReentrant` (no hay interacción
+     * externa). El stock se valida y se toma al PAGAR, no aquí: un producto puede agotarse entre la
+     * creación de la factura y su pago, en cuyo caso el pago revertirá `InsufficientStock`.
      */
-    function checkout() external nonReentrant {
+    function checkout() external returns (uint256[] memory invoiceIds) {
         address customer = msg.sender;
         CartLib.CartItem[] memory items = carts[customer].getItems();
         uint256 n = items.length;
         if (n == 0) revert EmptyCart();
 
-        // EFFECTS: una factura por empresa distinta (dos pasadas para agrupar por empresa).
+        // Una factura por empresa distinta (dos pasadas para agrupar por empresa).
         uint256[] memory companyIds = new uint256[](n);
         uint256 companyN = _distinctCompanies(items, companyIds);
 
-        uint256[] memory totals = new uint256[](companyN);
+        invoiceIds = new uint256[](companyN);
         for (uint256 c = 0; c < companyN; c++) {
-            totals[c] = _issueInvoice(customer, items, companyIds[c]);
+            invoiceIds[c] = _issueInvoice(customer, items, companyIds[c]);
         }
 
         carts[customer].clear();
+    }
 
-        // INTERACTIONS: cobro a cada empresa, después de TODOS los effects.
-        for (uint256 c = 0; c < companyN; c++) {
-            eurt.collect(customer, _treasuryOf(companyIds[c]), totals[c]);
+    /**
+     * @notice Phase 2 — pay a single invoice the caller owns: charge EURT, decrement stock and mark
+     *         it paid. Reverts if the invoice does not exist, is not the caller's, was already paid,
+     *         lacks stock, or the EURT pull fails.
+     * @param invoiceId The invoice to settle.
+     *
+     * 🇪🇸 NOTA — fase 2 (la llama la pasarela). `nonReentrant` + CEI estricto (la lógica vive en `_pay`).
+     */
+    function processPayment(uint256 invoiceId) external nonReentrant {
+        _pay(invoiceId);
+    }
+
+    /**
+     * @notice Phase 2 (batch) — pay several invoices the caller owns in ONE transaction, possibly
+     *         across multiple companies. All-or-nothing: if any invoice fails, the whole tx reverts.
+     * @param invoiceIds The invoices to settle (must be non-empty).
+     *
+     * 🇪🇸 NOTA — atómico todo-o-nada (mejora de UX sin romper el modelo multi-vendor): cada factura se
+     * liquida a su propia `payoutWallet` reusando el MISMO `_pay`. Si una falla (no existe / no es del
+     * caller / ya pagada / sin stock / sin allowance), el revert de la EVM deshace TODO el lote.
+     *
+     * 🇪🇸 NOTA — interleaving effects↔interaction: como cada `_pay` hace su `collect` (interacción)
+     * ANTES de los effects de la factura SIGUIENTE, dentro de un lote los pasos quedan intercalados
+     * (effects₁ → collect₁ → effects₂ → collect₂ …). Es SEGURO aquí por dos motivos: (1) `nonReentrant`
+     * impide reentrar a estas funciones, y (2) EURT es un ERC20 SIN hooks (su `transferFrom` no cede
+     * control al receptor). Con un token NO confiable o CON hooks (p.ej. ERC777) el patrón correcto
+     * sería hacer TODOS los effects de TODAS las facturas primero y TODOS los `collect` después.
+     */
+    function processBatchPayments(uint256[] calldata invoiceIds) external nonReentrant {
+        uint256 n = invoiceIds.length;
+        if (n == 0) revert EmptyBatch();
+        for (uint256 i = 0; i < n; i++) {
+            _pay(invoiceIds[i]);
         }
     }
 
@@ -440,21 +482,21 @@ contract Ecommerce is AccessControl, ReentrancyGuard {
     }
 
     /**
-     * @dev Build and create the invoice for `companyId` from its cart lines; return its total.
+     * @dev Build and create the UNPAID invoice for `companyId` from its cart lines; return its id.
      * @param customer  The buyer.
      * @param items     All cart lines (the function filters those of `companyId`).
      * @param companyId The company being invoiced.
-     * @return total    The invoice total (computed and stored by `InvoiceLib.create`).
+     * @return id       The id of the invoice created by `InvoiceLib.create`.
      *
      * 🇪🇸 NOTA: dos recorridos sobre `items` — uno para CONTAR las líneas de la empresa (dimensionar
-     * el array `memory`, que no se puede redimensionar) y otro para LLENARLAS. Por cada línea:
-     * snapshot de `product.price` como `unitPrice` y `decreaseStock(qty)` (valida stock y decrementa).
-     * `create` computa y almacena el total (fuente única); lo releemos de la factura para el cobro,
-     * porque `create` devuelve solo el id.
+     * el array `memory`, que no se puede redimensionar) y otro para LLENARLAS. Por cada línea se hace
+     * el snapshot de `product.price` como `unitPrice` (precio CONGELADO en fase 1). NO se decrementa
+     * stock aquí: eso es responsabilidad del PAGO (fase 2, `_pay`). `create` computa y almacena el
+     * total y devuelve el `id`, que propagamos a `checkout`.
      */
     function _issueInvoice(address customer, CartLib.CartItem[] memory items, uint256 companyId)
         private
-        returns (uint256 total)
+        returns (uint256 id)
     {
         uint256 count = 0;
         for (uint256 i = 0; i < items.length; i++) {
@@ -466,16 +508,47 @@ contract Ecommerce is AccessControl, ReentrancyGuard {
         for (uint256 i = 0; i < items.length; i++) {
             if (items[i].companyId != companyId) continue;
             uint256 productId = items[i].productId;
-            uint256 qty = items[i].quantity;
-            ProductLib.Product storage product = products[productId];
             lines[k++] = InvoiceLib.InvoiceLine({
-                productId: productId, quantity: qty, unitPrice: product.price
+                productId: productId,
+                quantity: items[i].quantity,
+                unitPrice: products[productId].price
             });
-            product.decreaseStock(qty);
         }
 
-        uint256 id = invoiceData.create(customer, companyId, lines);
-        total = invoiceData.invoices[id].total;
+        id = invoiceData.create(customer, companyId, lines);
+    }
+
+    /**
+     * @dev Settle one invoice (phase 2) with strict CEI. Shared by `processPayment` and
+     *      `processBatchPayments`.
+     * @param invoiceId The invoice to settle.
+     *
+     * 🇪🇸 NOTA — CEI estricto (Checks-Effects-Interactions):
+     *  - CHECKS: `invoiceData.get` revierte `InvoiceNotFound` si no existe; exigimos que el caller sea
+     *    el `customer` de la factura (si no, `NotInvoiceCustomer`). El pagador es siempre `msg.sender`.
+     *  - EFFECTS: `markPaid` valida `!isPaid` (revierte `InvoiceAlreadyPaid`) y voltea el flag; luego
+     *    `decreaseStock` por línea valida y descuenta (revierte `InsufficientStock`). Todo el estado
+     *    queda consistente ANTES de cualquier llamada externa.
+     *  - INTERACTION: `collect` hace el `transferFrom` de EURT del caller a la `payoutWallet`, y al
+     *    final se emite `InvoicePaid`. El guard `nonReentrant` vive en las funciones públicas.
+     */
+    function _pay(uint256 invoiceId) private {
+        // CHECKS
+        InvoiceLib.Invoice storage invoice = invoiceData.get(invoiceId);
+        if (msg.sender != invoice.customer) revert NotInvoiceCustomer(invoiceId, msg.sender);
+
+        // EFFECTS
+        invoiceData.markPaid(invoiceId);
+        uint256 lineCount = invoice.lines.length;
+        for (uint256 i = 0; i < lineCount; i++) {
+            products[invoice.lines[i].productId].decreaseStock(invoice.lines[i].quantity);
+        }
+        uint256 total = invoice.total;
+        address payout = _treasuryOf(invoice.companyId);
+
+        // INTERACTION
+        eurt.collect(msg.sender, payout, total);
+        emit InvoicePaid(invoiceId, msg.sender, total);
     }
 
     /**
