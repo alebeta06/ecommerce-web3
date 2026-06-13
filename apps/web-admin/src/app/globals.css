@@ -1,0 +1,3 @@
+/* 🇪🇸 NOTA: Tailwind v4 — una sola línea importa base + componentes + utilities.
+   La personalización del tema (si hiciera falta) se hace aquí con @theme. */
+@import "tailwindcss";
