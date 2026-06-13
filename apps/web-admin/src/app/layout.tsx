@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { WalletProvider } from "@/hooks/useWallet";
 import { WalletConnect } from "@/components/WalletConnect";
+import { Sidebar } from "@/components/Sidebar";
 
 // 🇪🇸 NOTA: layout raíz (App Router). Envolvemos toda la app en WalletProvider para que el estado
 // de la wallet sea único y compartido (header + hooks). El header muestra el estado de conexión.
@@ -21,7 +22,10 @@ export default function RootLayout({
             <span className="text-lg font-semibold">web-admin</span>
             <WalletConnect />
           </header>
-          {children}
+          <div className="flex">
+            <Sidebar />
+            <div className="flex-1">{children}</div>
+          </div>
         </WalletProvider>
       </body>
     </html>
