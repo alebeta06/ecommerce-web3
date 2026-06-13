@@ -24,9 +24,12 @@ optimizer_runs = 200
 
 # 🇪🇸 NOTA: remappings = alias de rutas para los imports de Solidity.
 # "@openzeppelin/" apunta físicamente a lib/openzeppelin-contracts/.
+# "euro-token/" apunta al proyecto HERMANO contracts/euro-token (no es submódulo):
+# el script de despliegue y los tests E2E importan el EuroToken REAL desde ahí.
 remappings = [
     "@openzeppelin/=lib/openzeppelin-contracts/",
     "forge-std/=lib/forge-std/src/",
+    "euro-token/=../euro-token/",
 ]
 
 # 🇪🇸 NOTA: configuración del formateador (forge fmt), para un estilo consistente.
