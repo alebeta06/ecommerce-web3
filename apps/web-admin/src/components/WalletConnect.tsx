@@ -1,11 +1,7 @@
 "use client";
 
 import { useWallet } from "@/hooks/useWallet";
-
-// 🇪🇸 NOTA: muestra la dirección abreviada estilo 0x1234...5678 (los primeros 6 y últimos 4).
-function shorten(address: string): string {
-  return `${address.slice(0, 6)}...${address.slice(-4)}`;
-}
+import { shortenAddress } from "@/lib/format";
 
 export function WalletConnect() {
   const { address, isConnecting, isWrongNetwork, error, connect, disconnect } = useWallet();
@@ -36,7 +32,7 @@ export function WalletConnect() {
         </span>
       ) : null}
       <span className="rounded-md bg-gray-100 px-3 py-1 font-mono text-sm text-gray-800">
-        {shorten(address)}
+        {shortenAddress(address)}
       </span>
       <button
         type="button"
