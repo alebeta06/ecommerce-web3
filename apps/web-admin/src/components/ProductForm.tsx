@@ -60,6 +60,13 @@ export function ProductForm({
       setMessage("IPFS CID is required.");
       return;
     }
+    // 🇪🇸 El contrato (ProductLib) exige length >= 46 (un CIDv0 "Qm..." mide exactamente 46).
+    // Validamos aquí para dar un mensaje claro en vez de un revert InvalidIpfsCidLength en estimateGas.
+    if (ipfsCid.trim().length < 46) {
+      setStatus("error");
+      setMessage("IPFS CID looks invalid (expected at least 46 characters).");
+      return;
+    }
     setStatus("pending");
     setMessage(null);
     try {
