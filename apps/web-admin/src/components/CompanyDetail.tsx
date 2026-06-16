@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 import { useCompany } from "@/hooks/useCompany";
+import { useProducts } from "@/hooks/useProducts";
+import { ProductList } from "@/components/ProductList";
+import { ProductForm } from "@/components/ProductForm";
 
 type Tab = "info" | "products" | "invoices";
 
@@ -14,6 +17,9 @@ const TABS: { key: Tab; label: string }[] = [
 export function CompanyDetail({ id }: { id: number }) {
   const { company, isLoading, error } = useCompany(id);
   const [tab, setTab] = useState<Tab>("info");
+  // 🇪🇸 companyId = id de la ruta (== company.id). Lo llamamos a nivel top para respetar las
+  // reglas de hooks; el filtro por companyId vive dentro de useProducts.
+  const products = useProducts(id);
 
   if (isLoading) return <p className="text-sm text-gray-500">Loading…</p>;
   if (error !== null || company === null) {
@@ -60,7 +66,16 @@ export function CompanyDetail({ id }: { id: number }) {
             </div>
           </dl>
         ) : null}
-        {tab === "products" ? <p className="text-sm text-gray-500">Coming soon</p> : null}
+        {tab === "products" ? (
+          <div className="flex flex-col gap-6">
+            <ProductForm companyId={company.id} onAdded={products.refetch} />
+            <ProductList
+              products={products.products}
+              isLoading={products.isLoading}
+              error={products.error}
+            />
+          </div>
+        ) : null}
         {tab === "invoices" ? <p className="text-sm text-gray-500">Coming soon</p> : null}
       </div>
     </div>
