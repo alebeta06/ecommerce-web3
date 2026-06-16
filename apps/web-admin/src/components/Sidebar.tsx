@@ -19,7 +19,7 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="w-56 shrink-0 border-r border-gray-200 p-4">
+    <aside className="w-56 shrink-0 border-r border-line bg-sidebar p-4">
       <nav className="flex flex-col gap-1">
         {ENABLED_LINKS.map((link) => {
           const isActive = link.match.some(
@@ -29,10 +29,10 @@ export function Sidebar() {
             <Link
               key={link.href}
               href={link.href}
-              className={`rounded-md px-3 py-2 text-sm font-medium ${
+              className={`rounded-lg px-3 py-2 text-sm font-medium ${
                 isActive
-                  ? "bg-blue-50 text-blue-700"
-                  : "text-gray-700 hover:bg-gray-50"
+                  ? "border border-line bg-card text-accent"
+                  : "border border-transparent text-muted hover:bg-card/60"
               }`}
             >
               {link.label}
@@ -44,7 +44,7 @@ export function Sidebar() {
           <span
             key={link.label}
             aria-disabled="true"
-            className="cursor-not-allowed rounded-md px-3 py-2 text-sm font-medium text-gray-400"
+            className="cursor-not-allowed rounded-lg px-3 py-2 text-sm font-medium text-muted opacity-50"
           >
             {link.label} <span className="text-xs">(soon)</span>
           </span>

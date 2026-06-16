@@ -4,7 +4,7 @@ export default function Home() {
   return (
     <main className="mx-auto max-w-3xl p-8">
       <h1 className="text-2xl font-bold">web-admin</h1>
-      <p className="mt-2 text-gray-600">
+      <p className="mt-2 text-muted">
         Merchant back-office — infrastructure scaffold (Component 5).
       </p>
     </main>

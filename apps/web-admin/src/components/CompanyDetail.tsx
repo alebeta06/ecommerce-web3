@@ -21,18 +21,18 @@ export function CompanyDetail({ id }: { id: number }) {
   // reglas de hooks; el filtro por companyId vive dentro de useProducts.
   const products = useProducts(id);
 
-  if (isLoading) return <p className="text-sm text-gray-500">Loading…</p>;
+  if (isLoading) return <p className="text-sm text-muted">Loading…</p>;
   if (error !== null || company === null) {
-    return <p className="text-sm text-red-600">{error ?? "Company not found."}</p>;
+    return <p className="text-sm text-red-400">{error ?? "Company not found."}</p>;
   }
 
   return (
     <div>
       <h1 className="text-2xl font-bold">{company.name}</h1>
-      <p className="mt-1 text-sm text-gray-500">Company #{company.id}</p>
+      <p className="mt-1 text-sm text-muted">Company #{company.id}</p>
 
       {/* 🇪🇸 Tab bar: HTML + Tailwind, sin librerías. El activo lleva borde inferior azul. */}
-      <div className="mt-6 flex gap-1 border-b border-gray-200">
+      <div className="mt-6 flex gap-1 border-b border-line">
         {TABS.map((t) => (
           <button
             key={t.key}
@@ -40,8 +40,8 @@ export function CompanyDetail({ id }: { id: number }) {
             onClick={() => setTab(t.key)}
             className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium ${
               tab === t.key
-                ? "border-blue-600 text-blue-700"
-                : "border-transparent text-gray-500 hover:text-gray-700"
+                ? "border-accent text-accent"
+                : "border-transparent text-muted hover:text-fg"
             }`}
           >
             {t.label}
@@ -53,15 +53,15 @@ export function CompanyDetail({ id }: { id: number }) {
         {tab === "info" ? (
           <dl className="space-y-3 text-sm">
             <div>
-              <dt className="text-gray-500">Name</dt>
+              <dt className="text-muted">Name</dt>
               <dd className="font-medium">{company.name}</dd>
             </div>
             <div>
-              <dt className="text-gray-500">Owner</dt>
+              <dt className="text-muted">Owner</dt>
               <dd className="font-mono break-all">{company.owner}</dd>
             </div>
             <div>
-              <dt className="text-gray-500">Payout wallet</dt>
+              <dt className="text-muted">Payout wallet</dt>
               <dd className="font-mono break-all">{company.payoutWallet}</dd>
             </div>
           </dl>
@@ -78,7 +78,7 @@ export function CompanyDetail({ id }: { id: number }) {
             />
           </div>
         ) : null}
-        {tab === "invoices" ? <p className="text-sm text-gray-500">Coming soon</p> : null}
+        {tab === "invoices" ? <p className="text-sm text-muted">Coming soon</p> : null}
       </div>
     </div>
   );

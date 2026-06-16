@@ -26,7 +26,7 @@ export function ProductForm({
   // 🇪🇸 Sin wallet conectada no hay signer (write === null): no mostramos el form.
   if (write === null) {
     return (
-      <p className="rounded-md border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
+      <p className="rounded-md border border-line bg-card p-4 text-sm text-muted">
         Connect wallet first to add a product.
       </p>
     );
@@ -95,14 +95,14 @@ export function ProductForm({
   }
 
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-3 rounded-md border border-gray-200 p-4">
-      <h2 className="text-sm font-semibold text-gray-800">Add product</h2>
+    <form onSubmit={onSubmit} className="flex flex-col gap-3 rounded-md border border-line bg-card p-4">
+      <h2 className="text-sm font-semibold text-fg">Add product</h2>
       <input
         type="text"
         placeholder="Name"
         value={name}
         onChange={(e) => setName(e.target.value)}
-        className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+        className="rounded-md border border-line bg-input px-3 py-2 text-sm text-fg placeholder:text-muted"
       />
       <input
         type="number"
@@ -111,7 +111,7 @@ export function ProductForm({
         placeholder="Price (€)"
         value={price}
         onChange={(e) => setPrice(e.target.value)}
-        className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+        className="rounded-md border border-line bg-input px-3 py-2 text-sm text-fg placeholder:text-muted"
       />
       <input
         type="number"
@@ -120,24 +120,24 @@ export function ProductForm({
         placeholder="Stock"
         value={stock}
         onChange={(e) => setStock(e.target.value)}
-        className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+        className="rounded-md border border-line bg-input px-3 py-2 text-sm text-fg placeholder:text-muted"
       />
       <input
         type="text"
         placeholder="IPFS CID"
         value={ipfsCid}
         onChange={(e) => setIpfsCid(e.target.value)}
-        className="rounded-md border border-gray-300 px-3 py-2 font-mono text-sm"
+        className="rounded-md border border-line bg-input px-3 py-2 font-mono text-sm text-fg placeholder:text-muted"
       />
       <button
         type="submit"
         disabled={status === "pending"}
-        className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+        className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-bg hover:bg-accent/90 disabled:opacity-50"
       >
         {status === "pending" ? "Adding…" : "Add product"}
       </button>
       {message !== null ? (
-        <span className={`text-xs ${status === "error" ? "text-red-600" : "text-green-600"}`}>
+        <span className={`text-xs ${status === "error" ? "text-red-400" : "text-success"}`}>
           {message}
         </span>
       ) : null}

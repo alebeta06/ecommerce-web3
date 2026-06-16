@@ -16,10 +16,10 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className="min-h-screen bg-white text-gray-900 antialiased">
+      <body className="min-h-screen bg-bg antialiased">
         <WalletProvider>
-          <header className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-            <span className="text-lg font-semibold">web-admin</span>
+          <header className="flex items-center justify-between border-b border-line bg-sidebar px-6 py-4">
+            <span className="text-lg font-semibold text-fg">web-admin</span>
             <WalletConnect />
           </header>
           <div className="flex">

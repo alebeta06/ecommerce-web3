@@ -15,11 +15,11 @@ export function WalletConnect() {
           type="button"
           onClick={() => void connect()}
           disabled={isConnecting}
-          className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+          className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-bg hover:bg-accent/90 disabled:opacity-50"
         >
           {isConnecting ? "Connecting…" : "Connect wallet"}
         </button>
-        {error !== null ? <span className="text-xs text-red-600">{error}</span> : null}
+        {error !== null ? <span className="text-xs text-red-400">{error}</span> : null}
       </div>
     );
   }
@@ -27,17 +27,17 @@ export function WalletConnect() {
   return (
     <div className="flex items-center gap-3">
       {isWrongNetwork ? (
-        <span className="rounded-md bg-red-100 px-2 py-1 text-xs font-medium text-red-700">
+        <span className="rounded-md bg-red-500/15 px-2 py-1 text-xs font-medium text-red-300">
           Wrong network — switch to Anvil (31337)
         </span>
       ) : null}
-      <span className="rounded-md bg-gray-100 px-3 py-1 font-mono text-sm text-gray-800">
+      <span className="rounded-md border border-line bg-bg px-3 py-1.5 font-mono text-xs text-fg">
         {shortenAddress(address)}
       </span>
       <button
         type="button"
         onClick={disconnect}
-        className="rounded-md border border-gray-300 px-3 py-1 text-sm text-gray-700 hover:bg-gray-50"
+        className="rounded-md border border-line bg-transparent px-3 py-1 text-sm text-muted hover:bg-card hover:text-fg"
       >
         Disconnect
       </button>
