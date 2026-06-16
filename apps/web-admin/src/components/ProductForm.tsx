@@ -4,6 +4,7 @@ import { useState } from "react";
 import { type ContractTransactionResponse } from "ethers";
 import { useEcommerce } from "@/hooks/useEcommerce";
 import { parseEurt } from "@/lib/format";
+import { friendlyError } from "@/lib/errors";
 
 type TxStatus = "idle" | "pending" | "success" | "error";
 
@@ -89,7 +90,7 @@ export function ProductForm({
       onAdded(); // 🇪🇸 refetch de la lista
     } catch (err) {
       setStatus("error");
-      setMessage(err instanceof Error ? err.message : "Transaction failed.");
+      setMessage(friendlyError(err));
     }
   }
 

@@ -5,6 +5,7 @@ import { isAddress, type ContractTransactionResponse } from "ethers";
 import { useEcommerce } from "@/hooks/useEcommerce";
 import { useWallet } from "@/hooks/useWallet";
 import { shortenAddress } from "@/lib/format";
+import { friendlyError } from "@/lib/errors";
 
 type TxStatus = "idle" | "pending" | "success" | "error";
 
@@ -60,7 +61,7 @@ export function CompanyForm({ onRegistered }: { onRegistered: () => void }) {
       onRegistered(); // 🇪🇸 refetch de la lista
     } catch (err) {
       setStatus("error");
-      setMessage(err instanceof Error ? err.message : "Transaction failed.");
+      setMessage(friendlyError(err));
     }
   }
 
