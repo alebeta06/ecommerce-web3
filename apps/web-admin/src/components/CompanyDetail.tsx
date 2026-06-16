@@ -73,6 +73,8 @@ export function CompanyDetail({ id }: { id: number }) {
               products={products.products}
               isLoading={products.isLoading}
               error={products.error}
+              companyId={company.id}
+              onUpdated={products.refetch}
             />
           </div>
         ) : null}
