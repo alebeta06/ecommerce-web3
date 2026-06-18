@@ -8,6 +8,8 @@ import { usePathname } from "next/navigation";
 const ENABLED_LINKS = [
   // 🇪🇸 `match` resalta el item también en rutas hijas (p.ej. /company/[id] activa "Companies").
   { href: "/companies", label: "Companies", match: ["/companies", "/company"] },
+  // 🇪🇸 Customers es global (no por-empresa): página top-level propia.
+  { href: "/customers", label: "Customers", match: ["/customers"] },
 ];
 
 const DISABLED_LINKS = [

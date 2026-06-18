@@ -21,3 +21,10 @@ export function formatEurt(amount: bigint): string {
 export function parseEurt(euros: string): bigint {
   return parseUnits(euros, EURT_DECIMALS);
 }
+
+// 🇪🇸 NOTA: convierte un timestamp on-chain (segundos unix, bigint — p.ej. Customer.createdAt) a una
+// fecha legible según el locale del navegador. Multiplicamos por 1000 porque JS Date usa milisegundos.
+// Centralizado aquí para reutilizarlo en cualquier vista que muestre fechas on-chain.
+export function formatTimestamp(ts: bigint): string {
+  return new Date(Number(ts) * 1000).toLocaleDateString();
+}
