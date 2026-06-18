@@ -3,8 +3,10 @@
 import { useState } from "react";
 import { useCompany } from "@/hooks/useCompany";
 import { useProducts } from "@/hooks/useProducts";
+import { useCompanyInvoices } from "@/hooks/useCompanyInvoices";
 import { ProductList } from "@/components/ProductList";
 import { ProductForm } from "@/components/ProductForm";
+import { InvoiceList } from "@/components/InvoiceList";
 
 type Tab = "info" | "products" | "invoices";
 
@@ -20,6 +22,9 @@ export function CompanyDetail({ id }: { id: number }) {
   // 🇪🇸 companyId = id de la ruta (== company.id). Lo llamamos a nivel top para respetar las
   // reglas de hooks; el filtro por companyId vive dentro de useProducts.
   const products = useProducts(id);
+  // 🇪🇸 Mismas reglas de hooks: lo llamamos a nivel top. El hook trae los ids de invoices de la
+  // empresa y luego cada invoice (con sus líneas) en paralelo.
+  const invoices = useCompanyInvoices(id);
 
   if (isLoading) return <p className="text-sm text-muted">Loading…</p>;
   if (error !== null || company === null) {
@@ -78,7 +83,13 @@ export function CompanyDetail({ id }: { id: number }) {
             />
           </div>
         ) : null}
-        {tab === "invoices" ? <p className="text-sm text-muted">Coming soon</p> : null}
+        {tab === "invoices" ? (
+          <InvoiceList
+            invoices={invoices.invoices}
+            isLoading={invoices.isLoading}
+            error={invoices.error}
+          />
+        ) : null}
       </div>
     </div>
   );
