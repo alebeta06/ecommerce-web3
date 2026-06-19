@@ -3,9 +3,9 @@
 // data cruda (0x...); por eso extraemos nosotros el selector (primeros 4 bytes) y lo mapeamos.
 // Robusto e independiente de cómo ethers anide la revert data.
 
-// 🇪🇸 selector (4 bytes, keccak de la firma del error) → mensaje humano. Sólo incluimos los
-// errores alcanzables desde web-admin (registrar empresa, alta/edición de productos) + el de
-// permisos de OpenZeppelin. Calculados con `cast sig`.
+// 🇪🇸 selector (4 bytes, keccak de la firma del error) → mensaje humano. Incluimos los errores
+// alcanzables desde web-customer (carrito, checkout, registro de cliente) además de los de
+// producto/empresa heredados. Calculados con `cast sig`.
 const ERROR_BY_SELECTOR: Record<string, string> = {
   // CompanyLib
   "0x2ef13105": "The name cannot be empty.", // EmptyName()
@@ -22,6 +22,16 @@ const ERROR_BY_SELECTOR: Record<string, string> = {
   "0x92691cab": "That product does not exist.", // ProductNotFound(uint256)
   "0x6fb8167b": "That product is inactive.", // ProductInactive(uint256)
   "0xb88528e4": "There is not enough stock for that product.", // InsufficientStock
+  // CartLib
+  "0x3d560c9b": "That item is not in your cart.", // ItemNotInCart(uint256,uint256)
+  "0x524f409b": "The quantity is not valid.", // InvalidQuantity()
+  // CustomerLib
+  "0xba03d6bf": "You are not registered as a customer yet.", // CustomerNotFound(address)
+  "0xe0f004dc": "You are already registered.", // CustomerAlreadyRegistered(address)
+  // Ecommerce (checkout)
+  "0x89a0016e": "Your cart is empty.", // EmptyCart()
+  "0xc2e5347d": "The request was empty.", // EmptyBatch()
+  "0x36cab380": "This invoice does not belong to you.", // NotInvoiceCustomer(uint256,address)
   // OpenZeppelin AccessControl
   "0xe2517d3f": "You don't have permission for this action. Only the platform admin can register companies.", // AccessControlUnauthorizedAccount
 };

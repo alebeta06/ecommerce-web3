@@ -21,6 +21,9 @@ export const env = {
     "NEXT_PUBLIC_EURO_TOKEN_ADDRESS",
     process.env.NEXT_PUBLIC_EURO_TOKEN_ADDRESS,
   ),
+  // 🇪🇸 URL de la pasarela de pago (app payment-gateway, :6002). El checkout redirige aquí para
+  // pagar. Tiene default razonable; no es crítica para arrancar la app.
+  paymentGatewayUrl: process.env.NEXT_PUBLIC_PAYMENT_GATEWAY_URL ?? "http://localhost:6002",
   // 🇪🇸 El gateway IPFS tiene default razonable; no es crítico para arrancar.
   ipfsGateway: process.env.NEXT_PUBLIC_IPFS_GATEWAY ?? "https://gateway.pinata.cloud/ipfs/",
 } as const;
