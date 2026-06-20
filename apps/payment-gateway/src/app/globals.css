@@ -1,0 +1,25 @@
+/* 🇪🇸 NOTA: Tailwind v4 — una sola línea importa base + componentes + utilities. */
+@import "tailwindcss";
+
+/* 🇪🇸 NOTA: paleta dark inspirada en el prototipo v0, en espacio de color oklch (más perceptualmente
+   uniforme que hex). En Tailwind v4 las variables dentro de @theme generan utilidades automáticamente:
+   --color-accent → bg-accent / text-accent / border-accent. Evitamos nombres que choquen con
+   utilidades nativas (NO usar `base`: `text-base` ya es un tamaño de fuente). */
+@theme {
+  --color-bg: oklch(0.21 0.025 235); /* fondo principal (body) */
+  --color-sidebar: oklch(0.18 0.025 238); /* sidebar + header, ligeramente más oscuro */
+  --color-card: oklch(0.25 0.028 235); /* cards, formularios, item de nav activo */
+  --color-fg: oklch(0.93 0.012 220); /* texto principal */
+  --color-muted: oklch(0.68 0.025 225); /* texto secundario / placeholders */
+  --color-accent: oklch(0.74 0.12 192); /* primary teal — botones, links, tab/nav activo */
+  --color-accent-2: oklch(0.32 0.04 200); /* badge inactivo, highlights secundarios */
+  --color-success: oklch(0.72 0.14 165); /* mint green — badge Active */
+  --color-line: oklch(0.4 0.03 230 / 35%); /* bordes de cards y separadores */
+  --color-input: oklch(0.32 0.03 235); /* fondo de inputs */
+}
+
+/* 🇪🇸 NOTA: fondo y color de texto base de toda la app (aplicado al body, como pediste). */
+body {
+  background-color: var(--color-bg);
+  color: var(--color-fg);
+}
