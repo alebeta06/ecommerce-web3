@@ -121,4 +121,4 @@ owner:
 | 2 | `CompanyLib` + `ProductLib` (+ base storage in `Ecommerce.sol`) + tests |
 | 3 | `CustomerLib` + `CartLib` + tests |
 | 4 | `InvoiceLib` + `PaymentLib` + EURT integration (`IERC20`, `ReentrancyGuard`) |
-| 5 | E2E integration tests, `forge coverage` ≥80%, `DeployEcommerce.s.sol`, dry-run deploy |
+| 5 | E2E integration tests, `forge coverage` 100% of contract code (achieved), `DeployEcommerce.s.sol`, dry-run deploy |

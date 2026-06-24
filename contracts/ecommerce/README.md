@@ -2,7 +2,8 @@
 
 The **store logic** contract, built modularly with **6 Solidity libraries**. Handles companies,
 products (with stock), customers, carts, invoices, and payments in EURT. Role-based access
-control, gas-conscious, target **80%+** test coverage.
+control, gas-conscious. **102 tests** with **100% coverage** of `Ecommerce.sol` and the 6 libraries,
+measured with `forge coverage` (the aggregate Total drops only because of the deploy script).
 
 > 🇪🇸 NOTA: El **diseño detallado y el porqué de cada decisión** están en
 > [`./CLAUDE.md`](./CLAUDE.md). Este README es el resumen de alto nivel.
@@ -36,7 +37,7 @@ control, gas-conscious, target **80%+** test coverage.
 ```
 src/Ecommerce.sol
 src/libraries/{CompanyLib,ProductLib,CustomerLib,CartLib,InvoiceLib,PaymentLib}.sol
-test/                # one *.t.sol per library + Ecommerce.integration.t.sol
+test/                # one *.t.sol per library + Ecommerce.{checkout,companyProduct,customerCart,payment,e2e}.t.sol
 script/DeployEcommerce.s.sol
 foundry.toml  remappings.txt
 lib/                 # git submodules: forge-std v1.16.1, openzeppelin-contracts v5.1.0

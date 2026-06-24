@@ -1,21 +1,21 @@
 # EuroToken (Component 1)
 
-<!-- 🇪🇸 NOTA: Placeholder. Proyecto Foundry que se inicializará en la PRÓXIMA sesión. -->
-
 The **EURT stablecoin**: an ERC20 token pegged 1:1 to the EUR, with **6 decimals** (euro cents and
-fractions). New EURT is minted only when a fiat payment clears (called by the buy-stablecoin app).
+fractions). New EURT is minted only when a fiat payment clears (called by the compra-stablecoin app).
 
 ## Responsibilities
 - ERC20 with 6 decimals (1 EUR = 1,000,000 base units).
 - `mint(address to, uint256 amount)` restricted to the **owner** (Ownable).
 - Audit **events** for mint and transfers.
-- Complete **Foundry** tests (target 80%+ coverage).
+- **8 Foundry tests**, **100% coverage** of `EuroToken.sol` (lines/statements/branches/functions),
+  measured with `forge coverage`. The aggregate Total drops only because the deploy script
+  (`script/DeployEuroToken.s.sol`) is not unit-tested.
 
-## Planned structure (Foundry)
+## Structure (Foundry)
 ```
 src/EuroToken.sol
 test/EuroToken.t.sol
-script/Deploy.s.sol
+script/DeployEuroToken.s.sol
 foundry.toml
 lib/            # openzeppelin-contracts, forge-std (git submodules)
 ```
