@@ -1,9 +1,7 @@
 # web-admin (Component 5)
 
-<!-- 🇪🇸 NOTA: Placeholder. App Next.js que se inicializará más adelante. -->
-
-Next.js 15 **merchant back-office**. Register and manage companies, CRUD products (with image
-uploads to IPFS), and review invoices and customers. Dark mode + responsive.
+Next.js 15 **merchant back-office** (port 6003). Register and manage companies, CRUD products (with
+image uploads to IPFS), and review invoices and customers. Dark mode + responsive.
 
 ## Responsibilities
 - Register/manage companies (`CompanyLib`).
@@ -11,7 +9,7 @@ uploads to IPFS), and review invoices and customers. Dark mode + responsive.
 - List & detail invoices (`InvoiceLib`); list customers with history (`CustomerLib`).
 - Custom hooks: `useWallet`, `useContract`, etc.
 
-## Planned structure
+## Structure
 ```
 src/app/            # /companies, /products, /invoices, /customers, dashboard
 src/components/      # tables, forms, image uploader, theme toggle

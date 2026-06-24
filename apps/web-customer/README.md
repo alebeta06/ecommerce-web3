@@ -1,18 +1,17 @@
 # web-customer (Component 6)
 
-<!-- 🇪🇸 NOTA: Placeholder. App Next.js que se inicializará más adelante. -->
-
-Next.js 15 **storefront**. Browse the catalog (no wallet needed), use an on-chain persistent cart,
-checkout (creates an invoice and redirects to the payment gateway), and view order history.
-Dark mode + responsive.
+Next.js 15 **storefront** (port 6004). Browse the catalog (no wallet needed), use an on-chain
+persistent cart, checkout (creates one invoice per company and redirects to the payment gateway),
+and view order history. Dark mode + responsive.
 
 ## Responsibilities
 - Product catalog — readable **without** connecting a wallet.
 - Persistent **on-chain cart** (`CartLib`).
-- Checkout: create invoice (`InvoiceLib`) and redirect to `payment-gateway` with URL params.
+- Checkout: create invoices (`InvoiceLib`, one per company) and redirect to `payment-gateway` via
+  `window.location.href` with `?invoices=...&redirect=...` (cross-origin :6004 → :6002).
 - Order history ("my invoices").
 
-## Planned structure
+## Structure
 ```
 src/app/            # /catalog, /cart, /checkout, /orders
 src/components/      # product cards, cart drawer, theme toggle
