@@ -85,17 +85,21 @@ ecommerce-web3/
 ├── contracts/
 │   ├── euro-token/          # Proyecto Foundry · EuroToken.sol (EURT)
 │   └── ecommerce/           # Proyecto Foundry · Ecommerce.sol + 6 librerías
-├── packages/
-│   ├── shared-abis/         # ABIs de los contratos (fuente única de verdad)
+├── packages/                # Paquetes compartidos (planificados; ver nota abajo)
+│   ├── shared-abis/         # ABIs de los contratos
 │   ├── shared-types/        # Tipos TypeScript compartidos
 │   └── shared-config/       # Direcciones de contratos y config de red
-├── scripts/
-│   └── restart-all.sh       # Orquestación local (Anvil → deploy → seed → 4 apps)
+├── restart-all.sh           # Orquestación local (Anvil → deploy → seed → 4 apps)
+├── scripts/                 # Scripts auxiliares (ver scripts/README.md)
 ├── docs/                    # ARCHITECTURE.md
 ├── CLAUDE.md                # Guía profunda para desarrolladores
 ├── pnpm-workspace.yaml  turbo.json  .nvmrc
 └── README.md                # (este archivo)
 ```
+
+> 🇪🇸 NOTA sobre `packages/`: son paquetes compartidos **planificados** como futura fuente única de
+> verdad (ABIs/tipos/config). **Hoy no están implementados**: cada app lleva sus propios ABIs, tipos
+> y config. Se documentan aquí para reflejar la estructura prevista del monorepo.
 
 ### Principios de diseño
 
@@ -165,7 +169,7 @@ cp apps/web-customer/.env.example      apps/web-customer/.env
 Un único comando levanta todo el sistema local de cero:
 
 ```bash
-./scripts/restart-all.sh
+./restart-all.sh
 ```
 
 Es **idempotente** (seguro re-ejecutar): mata los procesos previos antes de arrancar. Los logs se
@@ -276,7 +280,7 @@ Ecommerce         = 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512
 
 ## 10. Guía de prueba completa (E2E)
 
-> Prerrequisito: `./scripts/restart-all.sh` corriendo, y MetaMask conectado a Anvil (chainId `31337`).
+> Prerrequisito: `./restart-all.sh` corriendo, y MetaMask conectado a Anvil (chainId `31337`).
 
 1. **Comprar EURT (cliente = acct2).**
    - Importa **acct2** en MetaMask.
