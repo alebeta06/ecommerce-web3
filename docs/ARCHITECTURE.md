@@ -21,7 +21,8 @@ overview and tech decisions, see [`../CLAUDE.md`](../CLAUDE.md).
 | 7 | restart-all.sh   | tooling   | Boots the full local stack; deploys to deterministic addresses and validates them. |
 
 The four apps hold **no business data of their own** — they read/write on-chain state through
-ethers.js, using ABIs and addresses from the shared packages.
+ethers.js. Today **each app carries its own ABIs and addresses**; the shared packages
+(`shared-abis` / `shared-types` / `shared-config`) are **planned, not yet implemented**.
 
 ---
 
@@ -40,7 +41,7 @@ ethers.js, using ABIs and addresses from the shared packages.
 
   Off-chain:  Stripe (cards) ──PaymentIntent──► compra-stablecoin ──mint() via /api/mint-tokens──► EuroToken
               IPFS (Pinata)  ◄──upload──  web-admin ;  CID stored in Ecommerce product
-  Shared:     shared-abis · shared-types · shared-config  (imported by all 4 apps)
+  Shared:     shared-abis · shared-types · shared-config  (planned; not yet implemented)
 ```
 
 ---

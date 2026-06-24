@@ -112,15 +112,17 @@ pnpm workspaces + Turborepo.
 ecommerce-web3/
 ├── apps/            compra-stablecoin · payment-gateway · web-admin · web-customer (deployable)
 ├── contracts/       euro-token · ecommerce                                        (Foundry)
-├── packages/        shared-abis · shared-types · shared-config                    (importable libs)
-├── scripts/         restart-all.sh (local orchestration)
+├── packages/        shared-abis · shared-types · shared-config         (planned; not yet implemented)
+├── restart-all.sh   local orchestration (boots Anvil, deploys, seeds, starts apps)
+├── scripts/         auxiliary scripts (see scripts/README.md)
 ├── docs/            ARCHITECTURE.md (+ future: STRIPE.md, IPFS.md, …)
 ├── CLAUDE.md  README.md  LICENSE  .gitignore
 └── package.json  pnpm-workspace.yaml  turbo.json  .nvmrc
 ```
 
-- `apps/` = what gets **deployed and runs**. `packages/` = what apps **import**. `contracts/` = the
-  Solidity world with its own toolchain (Forge), isolated from Node.
+- `apps/` = what gets **deployed and runs**. `packages/` = shared libs apps **would import**
+  (planned; not yet implemented). `contracts/` = the Solidity world with its own toolchain (Forge),
+  isolated from Node.
 
 ### Naming conventions
 - Folders & packages: `kebab-case`. Internal npm package names: `@ecommerce-web3/<name>`.
@@ -136,10 +138,12 @@ ecommerce-web3/
 
 ---
 
-## 6. Shared packages — single source of truth
+## 6. Shared packages — single source of truth (planned)
 
-<!-- 🇪🇸 NOTA: Este es el corazón de por qué usamos monorepo. Sin esto, copiarías el ABI de un
-     contrato a mano en 4 apps cada vez que cambia. Con esto, hay UNA copia y todas la importan. -->
+> 🇪🇸 NOTA: estos paquetes son **planificados; aún no están implementados**. Hoy cada app lleva sus
+> propios ABIs/tipos/config. Esta sección describe el diseño previsto (la razón de ser del monorepo):
+> sin esto, copiarías el ABI de un contrato a mano en 4 apps cada vez que cambia; con esto, habría
+> UNA copia y todas la importarían.
 
 - **`@ecommerce-web3/shared-abis`** — the ABIs of EuroToken and Ecommerce, generated from the
   compiled contracts. *ABI = Application Binary Interface: the JSON "contract" that tells ethers.js
@@ -147,7 +151,9 @@ ecommerce-web3/
 - **`@ecommerce-web3/shared-types`** — TypeScript types shared across apps (Product, Invoice,
   Customer, Cart…), so the front-end speaks the same language as the contracts.
 - **`@ecommerce-web3/shared-config`** — deployed contract **addresses**, chain config (Anvil
-  chainId `31337`, RPC URL), and small env helpers. Updated automatically by `restart-all.sh`.
+  chainId `31337`, RPC URL), and small env helpers. *(Planned: in the current setup the addresses
+  are deterministic and live in each app's `.env`; `restart-all.sh` validates them, it does not
+  rewrite this package.)*
 
 ---
 
