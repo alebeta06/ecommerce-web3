@@ -1,9 +1,20 @@
-// 🇪🇸 NOTA: Server Component. Lee searchParams (Promise en Next 15: hay que await), valida el link
-// de pago, y delega el flujo interactivo (wallet, approve, pay) al Client Component PayClient.
+// 🇪🇸 NOTA: Server Component. Soporta DOS formatos de link de pago:
+//   · nuevo  → ?invoices=1,2&redirect=…            (carrito on-chain → PayClient)
+//   · legacy → ?merchant_address=0x…&amount=10&invoice=INV-X&date=…&redirect=…  (curso → LegacyPayClient)
+// Lee searchParams (Promise en Next 15: hay que await), valida, y delega al Client Component adecuado.
 import { PayClient } from "@/components/PayClient";
+import { LegacyPayClient } from "@/components/LegacyPayClient";
+import { isAddress } from "ethers";
 
 interface GatewayPageProps {
-  searchParams: Promise<{ invoices?: string; redirect?: string }>;
+  searchParams: Promise<{
+    invoices?: string;
+    redirect?: string;
+    merchant_address?: string;
+    amount?: string;
+    invoice?: string;
+    date?: string;
+  }>;
 }
 
 function InvalidLink() {
@@ -18,13 +29,33 @@ function InvalidLink() {
 }
 
 export default async function GatewayPage({ searchParams }: GatewayPageProps) {
-  const { invoices, redirect } = await searchParams;
+  const { invoices, redirect, merchant_address, amount, invoice, date } = await searchParams;
 
-  // 🇪🇸 redirect debe ser una URL http(s) (guard anti open-redirect / javascript:).
+  // 🇪🇸 redirect debe ser una URL http(s) (guard anti open-redirect / javascript:). Compartido.
   const validRedirect =
     typeof redirect === "string" && /^https?:\/\//i.test(redirect) ? redirect : null;
 
-  // 🇪🇸 invoices: lista de ids separada por comas; válida si no vacía y todos enteros >= 0.
+  // 🇪🇸 FORMATO LEGACY: si viene merchant_address, esta es una transferencia directa.
+  if (typeof merchant_address === "string" && merchant_address.trim() !== "") {
+    const amountNum = Number(amount);
+    const legacyValid =
+      isAddress(merchant_address) &&
+      Number.isFinite(amountNum) &&
+      amountNum > 0 &&
+      validRedirect !== null;
+    if (!legacyValid) return <InvalidLink />;
+    return (
+      <LegacyPayClient
+        merchantAddress={merchant_address}
+        amount={amountNum}
+        invoice={invoice ?? "—"}
+        date={date ?? "—"}
+        redirect={validRedirect}
+      />
+    );
+  }
+
+  // 🇪🇸 FORMATO NUEVO: lista de invoice ids (sin cambios respecto a antes).
   const ids =
     typeof invoices === "string" && invoices.trim() !== ""
       ? invoices.split(",").map(Number)
