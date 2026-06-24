@@ -86,6 +86,7 @@ export function CompanyDetail({ id }: { id: number }) {
         {tab === "invoices" ? (
           <InvoiceList
             invoices={invoices.invoices}
+            products={products.products}
             isLoading={invoices.isLoading}
             error={invoices.error}
           />

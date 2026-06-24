@@ -2,19 +2,26 @@
 
 import { Fragment, useState } from "react";
 import { type Invoice } from "@/types/invoice";
+import { type Product } from "@/types/product";
 import { formatEurt, shortenAddress } from "@/lib/format";
 
 export function InvoiceList({
   invoices,
+  products = [],
   isLoading,
   error,
 }: {
   invoices: Invoice[];
+  // 🇪🇸 Opcional: CompanyDetail pasa los productos de la empresa (muestra nombres). Otros consumidores
+  // (p.ej. facturas de cliente, que cruzan empresas) pueden omitirlo y caer al fallback "#id".
+  products?: Product[];
   isLoading: boolean;
   error: string | null;
 }) {
   // 🇪🇸 Una sola invoice expandida a la vez. null = ninguna. Toggle por id al pulsar "Details".
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  // 🇪🇸 productId→name para mostrar el nombre en las líneas (fallback "#id" si no está cargado aún).
+  const productNames = new Map<number, string>(products.map((p) => [p.id, p.name]));
 
   if (isLoading) return <p className="text-sm text-muted">Loading…</p>;
   if (error !== null) return <p className="text-sm text-red-400">{error}</p>;
@@ -76,7 +83,9 @@ export function InvoiceList({
                       <tbody>
                         {inv.lines.map((line, i) => (
                           <tr key={i}>
-                            <td className="py-1 pr-4">#{line.productId}</td>
+                            <td className="py-1 pr-4">
+                              {productNames.get(line.productId) ?? `#${line.productId}`}
+                            </td>
                             <td className="py-1 pr-4">{line.quantity.toString()}</td>
                             <td className="py-1 pr-4">{formatEurt(line.unitPrice)}</td>
                             <td className="py-1">{formatEurt(line.quantity * line.unitPrice)}</td>
