@@ -1,8 +1,10 @@
 "use client";
 
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { type Customer } from "@/types/customer";
+import { type Product, toProduct } from "@/types/product";
 import { useCustomerInvoices } from "@/hooks/useCustomerInvoices";
+import { useEcommerce } from "@/hooks/useEcommerce";
 import { InvoiceList } from "@/components/InvoiceList";
 import { shortenAddress, formatTimestamp } from "@/lib/format";
 
@@ -12,7 +14,28 @@ import { shortenAddress, formatTimestamp } from "@/lib/format";
 // Reusa InvoiceList tal cual: la vista de facturas es idéntica a la de la pestaña Invoices de empresa.
 function CustomerInvoices({ wallet }: { wallet: string }) {
   const { invoices, isLoading, error } = useCustomerInvoices(wallet);
-  return <InvoiceList invoices={invoices} isLoading={isLoading} error={error} />;
+  const { read } = useEcommerce();
+  // 🇪🇸 Las facturas del cliente cruzan empresas → necesitamos TODO el catálogo (sin filtrar por
+  // empresa ni por active: una factura puede referenciar un producto inactivo) para resolver nombres.
+  // read directo + useEffect: este sub-componente ya está montado (lazy al expandir), sin hooks condicionales.
+  const [products, setProducts] = useState<Product[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const raws = await read.getAllProducts();
+        if (!cancelled) setProducts(raws.map(toProduct));
+      } catch {
+        // 🇪🇸 best-effort: si falla, InvoiceList cae al fallback "#id".
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [read]);
+  return (
+    <InvoiceList invoices={invoices} products={products} isLoading={isLoading} error={error} />
+  );
 }
 
 export function CustomerList({
