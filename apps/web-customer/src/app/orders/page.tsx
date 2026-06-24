@@ -3,12 +3,16 @@
 import { Fragment, useState } from "react";
 import { useWallet } from "@/hooks/useWallet";
 import { useOrders } from "@/hooks/useOrders";
+import { useInvoiceLabels } from "@/hooks/useInvoiceLabels";
 import { type Invoice } from "@/types/invoice";
 import { formatEurt, formatTimestamp } from "@/lib/format";
 
 export default function OrdersPage() {
   const { address } = useWallet();
   const { orders, isLoading, error } = useOrders(address);
+  // 🇪🇸 Nombres legibles (producto + empresa) para las facturas. Hook incondicional (antes del
+  // early-return de address) para respetar las reglas de hooks; con orders=[] no lee nada.
+  const { productNames, companyNames } = useInvoiceLabels(orders.map((o) => o.companyId));
 
   // 🇪🇸 Guard: sin wallet no hay historial on-chain que mostrar.
   if (address === null) {
@@ -32,7 +36,7 @@ export default function OrdersPage() {
         ) : orders.length === 0 ? (
           <p className="text-sm text-muted">No orders yet.</p>
         ) : (
-          <OrdersTable orders={orders} />
+          <OrdersTable orders={orders} productNames={productNames} companyNames={companyNames} />
         )}
       </div>
     </main>
@@ -40,7 +44,16 @@ export default function OrdersPage() {
 }
 
 // 🇪🇸 NOTA: tabla con expand inline (patrón InvoiceList de web-admin). Una orden abierta a la vez.
-function OrdersTable({ orders }: { orders: Invoice[] }) {
+// productNames/companyNames enriquecen las facturas con nombres legibles (fallback "#id" si faltan).
+function OrdersTable({
+  orders,
+  productNames,
+  companyNames,
+}: {
+  orders: Invoice[];
+  productNames: Map<number, string>;
+  companyNames: Map<number, string>;
+}) {
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
   return (
@@ -48,6 +61,7 @@ function OrdersTable({ orders }: { orders: Invoice[] }) {
       <thead>
         <tr className="border-b border-line text-left text-muted">
           <th className="py-2 pr-4 font-medium">ID</th>
+          <th className="py-2 pr-4 font-medium">Company</th>
           <th className="py-2 pr-4 font-medium">Total</th>
           <th className="py-2 pr-4 font-medium">Date</th>
           <th className="py-2 pr-4 font-medium">Status</th>
@@ -61,6 +75,9 @@ function OrdersTable({ orders }: { orders: Invoice[] }) {
             <Fragment key={order.id}>
               <tr className="border-b border-line">
                 <td className="py-2 pr-4">{order.id}</td>
+                <td className="py-2 pr-4">
+                  {companyNames.get(order.companyId) ?? `#${order.companyId}`}
+                </td>
                 <td className="py-2 pr-4">{formatEurt(order.total)}</td>
                 <td className="py-2 pr-4">{formatTimestamp(order.createdAt)}</td>
                 <td className="py-2 pr-4">
@@ -86,7 +103,7 @@ function OrdersTable({ orders }: { orders: Invoice[] }) {
                 <tr className="border-b border-line bg-card">
                   {/* 🇪🇸 Líneas inline: ya vienen en el objeto invoice, sin lecturas extra. El
                       subtotal se calcula en bigint (quantity * unitPrice) para no perder precisión. */}
-                  <td colSpan={5} className="px-4 py-3">
+                  <td colSpan={6} className="px-4 py-3">
                     <table className="w-full border-collapse text-xs">
                       <thead>
                         <tr className="text-left text-muted">
@@ -99,7 +116,9 @@ function OrdersTable({ orders }: { orders: Invoice[] }) {
                       <tbody>
                         {order.lines.map((line, i) => (
                           <tr key={i}>
-                            <td className="py-1 pr-4">#{line.productId}</td>
+                            <td className="py-1 pr-4">
+                              {productNames.get(line.productId) ?? `#${line.productId}`}
+                            </td>
                             <td className="py-1 pr-4">{line.quantity.toString()}</td>
                             <td className="py-1 pr-4">{formatEurt(line.unitPrice)}</td>
                             <td className="py-1">{formatEurt(line.quantity * line.unitPrice)}</td>
