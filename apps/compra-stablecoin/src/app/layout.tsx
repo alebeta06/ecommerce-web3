@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { WalletProvider } from "@/hooks/useWallet";
 
-// 🇪🇸 NOTA: layout raíz (App Router), minimal. Esta app compra EURT con tarjeta (Stripe) y mintea
-// on-chain. El header solo muestra el título; la conexión de wallet y el flujo de pago viven en la
-// página (dos columnas). El WalletProvider se añadirá junto con los hooks en el siguiente commit.
+// 🇪🇸 NOTA: layout raíz. Envolvemos en WalletProvider para que useWallet comparta un único estado.
+// El header solo muestra el título; conectar wallet y pagar viven en la página (dos columnas).
 export const metadata: Metadata = {
   title: "compra-stablecoin",
   description:
@@ -14,10 +14,12 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en">
       <body className="min-h-screen bg-bg antialiased">
-        <header className="flex items-center justify-between border-b border-line bg-sidebar px-6 py-4">
-          <span className="text-lg font-semibold text-fg">compra-stablecoin</span>
-        </header>
-        <main>{children}</main>
+        <WalletProvider>
+          <header className="flex items-center justify-between border-b border-line bg-sidebar px-6 py-4">
+            <span className="text-lg font-semibold text-fg">compra-stablecoin</span>
+          </header>
+          <main>{children}</main>
+        </WalletProvider>
       </body>
     </html>
   );
