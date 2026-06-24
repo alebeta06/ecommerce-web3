@@ -18,8 +18,8 @@ products from merchants. Everything that matters — token balances, the product
 invoices and payments — lives on a blockchain. The web apps are just windows into on-chain state.
 
 It is **Module 8** of the CodeCrypto Master's in *Blockchain & AI Systems Engineering*. The goal is
-**deep learning, not a quick MVP**: real Stripe with working webhooks, real IPFS, 80%+ test
-coverage, professional documentation.
+**deep learning, not a quick MVP**: real Stripe (Payment Intents + server-side mint), real IPFS,
+**100% coverage of the contract code**, professional documentation.
 
 The system has **7 integrated components** (see §3).
 
@@ -35,9 +35,9 @@ The system has **7 integrated components** (see §3).
   - Markdown: `<!-- 🇪🇸 NOTA: ... -->`
   - TypeScript / Solidity: `// 🇪🇸 NOTA: ...`
 - **Explain advanced terms on first use** (EIP-2771, AccessControl, webhooks, Payment Intents…).
-- **Quality bars:** Stripe must be REAL with functional webhooks · IPFS must be REAL ·
-  test coverage target **80%+** · TypeScript in **strict** mode · robust input validation at every
-  system boundary.
+- **Quality bars:** Stripe must be REAL (Payment Intents) · IPFS must be REAL ·
+  test coverage **100% of the contract code** (achieved) · TypeScript in **strict** mode · robust
+  input validation at every system boundary.
 - **File hygiene:** keep files under ~500 lines; never commit secrets or `.env` files; read a file
   before editing it; do not create files unless necessary.
 
@@ -56,34 +56,34 @@ Seven components, two "worlds" (on-chain Solidity vs. off-chain Next.js), glued 
             ┌───────────────┘            │              │            └───────────────┐
             ▼                            ▼              ▼                            ▼
    ┌──────────────────┐      ┌────────────────────┐  ┌──────────────────┐  ┌──────────────────┐
-   │ (2) buy-stablecoin│     │ (6) web-customer   │  │ (5) web-admin    │  │ (3) payment-     │
-   │     Next.js       │     │     Next.js        │  │     Next.js      │  │     gateway      │
+   │ (2) compra-       │     │ (6) web-customer   │  │ (5) web-admin    │  │ (3) payment-     │
+   │     stablecoin    │     │     Next.js        │  │     Next.js      │  │     gateway      │
    │ Buy EURT w/ card  │     │ Catalog, cart,     │  │ Companies, prods │  │  Next.js         │
    │ via Stripe        │     │ checkout, orders   │  │ (IPFS img), inv. │  │ approve + pay    │
    └──────────────────┘      └────────────────────┘  └──────────────────┘  └──────────────────┘
             │ Stripe                    │  reads/writes        │  reads/writes        │ approve+
-            │ webhook                   │                      │                      │ processPayment
+            │ confirm                   │                      │                      │ processPayment
             ▼                           ▼                      ▼                      ▼
    ┌──────────────────┐      ╔══════════════════════════════════════════════════════════════╗
    │  Stripe (cards,  │      ║                    BLOCKCHAIN (Anvil / EVM)                   ║
    │  Payment Intents)│      ║                                                              ║
    └──────────────────┘      ║   ┌────────────────────┐        ┌──────────────────────────┐ ║
-            │ on payment      ║   │ (1) EuroToken      │  EURT  │ (4) Ecommerce            │ ║
-            │ success         ║   │     ERC20, 6 dec.  │◄──────►│   CompanyLib ProductLib  │ ║
+            │ on success →    ║   │ (1) EuroToken      │  EURT  │ (4) Ecommerce            │ ║
+            │ /api/mint-tokens║   │     ERC20, 6 dec.  │◄──────►│   CompanyLib ProductLib  │ ║
             └──────mint()────►║   │     mint() owner   │ transfer│  CustomerLib CartLib     │ ║
                               ║   └────────────────────┘        │  InvoiceLib  PaymentLib  │ ║
                               ║                                  └──────────────────────────┘ ║
                               ╚══════════════════════════════════════════════════════════════╝
 
-   Shared packages (imported by all apps):  @ecommerce-web3/shared-abis · shared-types · shared-config
-   Off-chain storage:  IPFS (Pinata / web3.storage) for product images
-   (7) scripts/restart-all.sh  →  boots Anvil, deploys both contracts, wires .env, starts the 4 apps
+   Shared packages (planned; not yet implemented):  @ecommerce-web3/shared-abis · shared-types · shared-config
+   Off-chain storage:  IPFS (Pinata) for product images
+   (7) restart-all.sh (repo root)  →  boots Anvil, deploys both contracts (deterministic addrs), seeds data, starts the 4 apps
 ```
 
 **Reading the diagram:** the four Next.js apps never own data — they read from and write to the two
 smart contracts. EuroToken is the money; Ecommerce is the store logic. Stripe sits *outside* the
-chain and triggers an on-chain `mint()` when a card payment succeeds. The shared packages are the
-plumbing that keeps the four apps in sync with the contracts (see §6).
+chain and triggers an on-chain `mint()` (server-side, via `/api/mint-tokens`) when a card payment
+succeeds. The shared packages (planned) would keep the four apps in sync with the contracts (see §6).
 
 ---
 
@@ -92,7 +92,7 @@ plumbing that keeps the four apps in sync with the contracts (see §6).
 | # | Component        | Type            | Core tech                                                        |
 |---|------------------|-----------------|------------------------------------------------------------------|
 | 1 | EuroToken        | Smart contract  | Solidity, Foundry, OpenZeppelin (ERC20 + Ownable), 6 decimals    |
-| 2 | buy-stablecoin   | Next.js app     | Next.js 15 (App Router), TS strict, Stripe SDK + webhooks, ethers v6 |
+| 2 | compra-stablecoin| Next.js app     | Next.js 15 (App Router), TS strict, Stripe SDK (Payment Intents), ethers v6 |
 | 3 | payment-gateway  | Next.js app     | Next.js 15, TS strict, ethers v6, MetaMask (EIP-1193), URL params |
 | 4 | Ecommerce        | Smart contract  | Solidity, Foundry, 6 libraries, AccessControl, gas optimization  |
 | 5 | web-admin        | Next.js app     | Next.js 15, TS strict, ethers v6, IPFS (Pinata), Tailwind, dark mode |
@@ -110,7 +110,7 @@ pnpm workspaces + Turborepo.
 
 ```
 ecommerce-web3/
-├── apps/            buy-stablecoin · payment-gateway · web-admin · web-customer   (deployable)
+├── apps/            compra-stablecoin · payment-gateway · web-admin · web-customer (deployable)
 ├── contracts/       euro-token · ecommerce                                        (Foundry)
 ├── packages/        shared-abis · shared-types · shared-config                    (importable libs)
 ├── scripts/         restart-all.sh (local orchestration)
@@ -169,7 +169,7 @@ pnpm --filter web-admin dev  # run a task for ONE workspace only
 ```bash
 forge build                  # compile contracts
 forge test -vvv              # run tests (verbose)
-forge coverage               # coverage report (target 80%+)
+forge coverage               # coverage report (100% of contract code; aggregate Total lower due to deploy scripts)
 forge fmt                    # format Solidity
 anvil                        # start local EVM node (chainId 31337)
 forge script script/Deploy.s.sol --rpc-url http://localhost:8545 --broadcast --private-key <KEY>
@@ -178,7 +178,7 @@ cast call <ADDR> "totalSupply()(uint256)" --rpc-url http://localhost:8545   # re
 
 ### Local full system
 ```bash
-./scripts/restart-all.sh     # (future) Anvil → deploy → wire .env → start 4 apps
+./restart-all.sh             # Anvil → deploy (deterministic addrs) → seed data → start 4 apps
 ```
 
 ---
@@ -186,17 +186,19 @@ cast call <ADDR> "totalSupply()(uint256)" --rpc-url http://localhost:8545   # re
 ## 8. Environment variables (per app)
 
 > 🇪🇸 NOTA: `NEXT_PUBLIC_*` = expuestas al navegador (no secretas). El resto son SOLO de servidor
-> (Stripe secret key, webhook secret, IPFS JWT) y nunca deben llevar el prefijo público.
+> (Stripe secret key, minter private key, IPFS JWT) y nunca deben llevar el prefijo público.
 > Las plantillas reales están en cada `apps/<app>/.env.example`.
+>
+> 🇪🇸 NOTA de naming: `compra-stablecoin` usa `NEXT_PUBLIC_EUROTOKEN_ADDRESS` (sin guion bajo),
+> mientras que las otras 3 apps usan `NEXT_PUBLIC_EURO_TOKEN_ADDRESS`. Inconsistencia real del repo.
 
 | App             | Variable                          | Secret? | Purpose                                  |
 |-----------------|-----------------------------------|---------|------------------------------------------|
-| buy-stablecoin  | `NEXT_PUBLIC_RPC_URL`             | no      | RPC endpoint (Anvil)                     |
-|                 | `NEXT_PUBLIC_EURO_TOKEN_ADDRESS`  | no      | EuroToken contract address               |
+| compra-stablecoin| `NEXT_PUBLIC_RPC_URL`            | no      | RPC endpoint (Anvil)                     |
+|                 | `NEXT_PUBLIC_EUROTOKEN_ADDRESS`   | no      | EuroToken contract address               |
 |                 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | no   | Stripe client key                        |
 |                 | `STRIPE_SECRET_KEY`               | **yes** | Stripe server key (create Payment Intent)|
-|                 | `STRIPE_WEBHOOK_SECRET`           | **yes** | Verify Stripe webhook signatures         |
-|                 | `MINTER_PRIVATE_KEY`              | **yes** | Wallet allowed to call `mint()`          |
+|                 | `WALLET_PRIVATE_KEY`              | **yes** | Minter wallet (owner) that calls `mint()`|
 | payment-gateway | `NEXT_PUBLIC_RPC_URL`             | no      | RPC endpoint                             |
 |                 | `NEXT_PUBLIC_EURO_TOKEN_ADDRESS`  | no      | For `approve()`                          |
 |                 | `NEXT_PUBLIC_ECOMMERCE_ADDRESS`   | no      | For `processPayment()`                   |
@@ -226,8 +228,8 @@ cast call <ADDR> "totalSupply()(uint256)" --rpc-url http://localhost:8545   # re
    overkill for a fiat-pegged token.
 3. **`mint()` access control — Ownable on EuroToken.** *Ownable = a simple OpenZeppelin pattern
    with one `owner` who holds privileged rights.* Only the owner (the minter wallet, called by the
-   buy-stablecoin webhook) can mint new EURT, mirroring "money is only created when a card payment
-   clears."
+   compra-stablecoin server via `/api/mint-tokens`) can mint new EURT, mirroring "money is only
+   created when a card payment clears."
 4. **AccessControl (role-based) on Ecommerce.** *AccessControl = OpenZeppelin's role-based access:
    instead of one owner, you define roles (e.g. `ADMIN_ROLE`) and grant them to addresses.* The
    store has several privileged actions (register company, CRUD products) that benefit from roles
@@ -236,10 +238,14 @@ cast call <ADDR> "totalSupply()(uint256)" --rpc-url http://localhost:8545   # re
    `delegatecall`-ed or linked, keeping the main contract small and under bytecode/size limits.*
    Splitting Company/Product/Customer/Cart/Invoice/Payment logic improves readability, testability
    and gas, and avoids the 24KB contract size limit.
-6. **Stripe Payment Intents + webhooks (real).** *A Payment Intent is Stripe's object tracking a
-   payment's lifecycle.* *A webhook is an HTTP callback Stripe sends to our server when an event
-   happens (e.g. `payment_intent.succeeded`).* We mint EURT **only** after verifying the webhook
-   signature — never trust the browser to confirm payment.
+6. **Stripe Payment Intents + server-side mint (real).** *A Payment Intent is Stripe's object
+   tracking a payment's lifecycle.* *A webhook is an HTTP callback Stripe sends to our server when an
+   event happens (e.g. `payment_intent.succeeded`).* We mint EURT **only** server-side, after a
+   payment reaches `payment_intent.succeeded` — never trusting the browser to confirm payment.
+   <!-- 🇪🇸 NOTA (implementación final): el mint se dispara desde una API route
+   (`/api/mint-tokens`) que re-verifica el estado del PaymentIntent contra Stripe, NO desde un
+   webhook firmado. Un webhook firmado por Stripe sería la evolución más robusta (sobrevive a que el
+   cliente cierre la pestaña); lo dejamos documentado como decisión considerada y futura mejora. -->
 7. **ethers.js v6.** Latest major version; note API differences vs v5 (e.g. `parseUnits`,
    `BrowserProvider`, `Contract` constructor) — we'll flag them when coding.
 8. **EIP-2771 (gasless meta-transactions) = OPTIONAL, not core.** *EIP-2771 lets a "trusted
@@ -259,7 +265,7 @@ cast call <ADDR> "totalSupply()(uint256)" --rpc-url http://localhost:8545   # re
 1. **EuroToken** (contract 1) — the money. Foundry + OpenZeppelin + tests. *(next session)*
 2. **Ecommerce** (contract 4) — the store logic with 6 libraries + tests.
 3. **shared-abis / shared-types / shared-config** — wire contracts to the front-end.
-4. **buy-stablecoin** (app 2) — Stripe + webhook + mint.
+4. **compra-stablecoin** (app 2) — Stripe Payment Intents + server-side mint (`/api/mint-tokens`).
 5. **payment-gateway** (app 3) — MetaMask approve + processPayment.
 6. **web-admin** (app 5) — companies, products (IPFS), invoices, customers.
 7. **web-customer** (app 6) — catalog, cart, checkout → gateway, order history.
