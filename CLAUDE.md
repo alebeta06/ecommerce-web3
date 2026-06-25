@@ -40,6 +40,9 @@ The system has **7 integrated components** (see [section 3](#3-system-architectu
   input validation at every system boundary.
 - **File hygiene:** keep files under ~500 lines; never commit secrets or `.env` files; read a file
   before editing it; do not create files unless necessary.
+- **Cross-references in docs:** in the README and delivery docs, use clickable Markdown internal
+  links (`[section N](#anchor)`) for cross-references, **not** the section-sign character
+  (Unicode `U+00A7`).
 
 ---
 
