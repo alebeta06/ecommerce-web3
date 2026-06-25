@@ -51,4 +51,4 @@ lib/                 # git submodules: forge-std v1.16.1, openzeppelin-contracts
   del tipo `T` (el primer parámetro `self` recibe el operando de la izquierda).
 - **AccessControl:** control de acceso por roles (`bytes32`) en vez de un único `owner`.
 
-See [`../../CLAUDE.md`](../../CLAUDE.md) §9 and [`../../docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md) §4.
+See [`CLAUDE.md` → Key technical decisions](../../CLAUDE.md#9-key-technical-decisions-with-rationale) and [`ARCHITECTURE.md` → Design decisions](../../docs/ARCHITECTURE.md#4-design-decisions-justified).

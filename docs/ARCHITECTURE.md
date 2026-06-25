@@ -135,7 +135,7 @@ Merchant    web-admin              IPFS (Pinata)            Ecommerce (chain)
 
 ## 4. Design decisions (justified)
 
-<!-- 🇪🇸 NOTA: Decisiones de arquitectura. El "por qué" detallado de tooling está en CLAUDE.md §9. -->
+<!-- 🇪🇸 NOTA: Decisiones de arquitectura. El "por qué" detallado de tooling está en ../CLAUDE.md, sección 9 ("Key technical decisions"). -->
 
 1. **Modular Ecommerce with 6 libraries.** Splitting Company/Product/Customer/Cart/Invoice/Payment
    into libraries keeps the main contract under the 24KB bytecode limit, isolates concerns for

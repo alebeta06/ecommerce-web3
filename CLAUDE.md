@@ -21,7 +21,7 @@ It is **Module 8** of the CodeCrypto Master's in *Blockchain & AI Systems Engine
 **deep learning, not a quick MVP**: real Stripe (Payment Intents + server-side mint), real IPFS,
 **100% coverage of the contract code**, professional documentation.
 
-The system has **7 integrated components** (see §3).
+The system has **7 integrated components** (see [section 3](#3-system-architecture)).
 
 ---
 
@@ -83,7 +83,7 @@ Seven components, two "worlds" (on-chain Solidity vs. off-chain Next.js), glued 
 **Reading the diagram:** the four Next.js apps never own data — they read from and write to the two
 smart contracts. EuroToken is the money; Ecommerce is the store logic. Stripe sits *outside* the
 chain and triggers an on-chain `mint()` (server-side, via `/api/mint-tokens`) when a card payment
-succeeds. The shared packages (planned) would keep the four apps in sync with the contracts (see §6).
+succeeds. The shared packages (planned) would keep the four apps in sync with the contracts (see [section 6](#6-shared-packages--single-source-of-truth-planned)).
 
 ---
 

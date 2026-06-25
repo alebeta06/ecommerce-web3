@@ -73,7 +73,7 @@ owner:
   `companyOf` mapping), because the permission is per-company, not global.
 
 <!-- 🇪🇸 NOTA: AccessControl = roles (bytes32) que se conceden a direcciones. Ownable (un solo
-     owner) no modela admin-de-plataforma + dueños-de-empresa + clientes. Ver raíz §9.4. -->
+     owner) no modela admin-de-plataforma + dueños-de-empresa + clientes. Ver ../../CLAUDE.md, sección 9 (punto 4, AccessControl). -->
 
 ---
 

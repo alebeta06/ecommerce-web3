@@ -24,4 +24,4 @@ lib/            # openzeppelin-contracts, forge-std (git submodules)
 - **6 decimales:** los decimales en ERC20 son solo de display; on-chain todo son enteros.
 - **Ownable:** patrón de OpenZeppelin con un único `owner` con permisos privilegiados (mint).
 
-See [`../../CLAUDE.md`](../../CLAUDE.md) §9 for rationale. Build commands in §7 (Foundry).
+See [`CLAUDE.md` → Key technical decisions](../../CLAUDE.md#9-key-technical-decisions-with-rationale) for rationale. Build commands in [`CLAUDE.md` → Common commands](../../CLAUDE.md#7-common-commands) (Foundry).

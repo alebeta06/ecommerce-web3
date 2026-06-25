@@ -152,7 +152,7 @@ pnpm install                    # instala dependencias de todo el workspace
 forge build --root contracts/euro-token
 forge build --root contracts/ecommerce
 
-# Copia y rellena las variables de entorno de cada app (ver §10)
+# Copia y rellena las variables de entorno de cada app (ver la sección 10)
 cp apps/compra-stablecoin/.env.example apps/compra-stablecoin/.env
 cp apps/payment-gateway/.env.example   apps/payment-gateway/.env
 cp apps/web-admin/.env.example         apps/web-admin/.env
@@ -160,7 +160,7 @@ cp apps/web-customer/.env.example      apps/web-customer/.env
 ```
 
 > 🇪🇸 NOTA: las direcciones de los contratos que van en los `.env` son **deterministas** en Anvil
-> (mismas en cada arranque). Están listadas en §10 y las usa `restart-all.sh`.
+> (mismas en cada arranque). Están listadas en [Direcciones deterministas](#direcciones-deterministas-anvil) y las usa `restart-all.sh`.
 
 ---
 
@@ -180,7 +180,7 @@ escriben en `/tmp/` (`/tmp/anvil.log`, `/tmp/app-6001.log`, …).
 | 1 | Mata procesos previos de Anvil y de las apps, y libera los puertos 8545 / 6001-6004. |
 | 2 | Arranca **Anvil** (chainId `31337`) y espera a que el RPC responda. |
 | 3 | Ejecuta `forge script DeployEcommerce.s.sol` → despliega **EuroToken + Ecommerce** en una pasada. |
-| 4 | **Valida** que las direcciones desplegadas coinciden con las deterministas esperadas (ver §10). |
+| 4 | **Valida** que las direcciones desplegadas coinciden con las deterministas esperadas (ver [Direcciones deterministas](#direcciones-deterministas-anvil)). |
 | 5 | Siembra datos: empresa **TechShop** (id 1, owner = acct1) + **3 productos** (Smartphone, Laptop, Bicicleta) + mintea **1000 EURT a acct1**. |
 | 6 | Arranca las 4 apps con `pnpm --filter <app> dev` y espera HTTP 200 en cada puerto. |
 
