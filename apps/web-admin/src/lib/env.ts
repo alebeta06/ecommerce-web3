@@ -23,4 +23,6 @@ export const env = {
   ),
   // 🇪🇸 El gateway IPFS tiene default razonable; no es crítico para arrancar.
   ipfsGateway: process.env.NEXT_PUBLIC_IPFS_GATEWAY ?? "https://gateway.pinata.cloud/ipfs/",
+  // 🇪🇸 Nombre legible de la red esperada; fallback al chainId si no se define.
+  networkName: process.env.NEXT_PUBLIC_NETWORK_NAME ?? `chain ${Number(process.env.NEXT_PUBLIC_CHAIN_ID)}`,
 } as const;

@@ -1,6 +1,7 @@
 "use client";
 
 import { useWallet } from "@/hooks/useWallet";
+import { env } from "@/lib/env";
 import { shortenAddress } from "@/lib/format";
 
 export function WalletConnect() {
@@ -28,7 +29,7 @@ export function WalletConnect() {
     <div className="flex items-center gap-3">
       {isWrongNetwork ? (
         <span className="rounded-md bg-red-500/15 px-2 py-1 text-xs font-medium text-red-300">
-          Wrong network — switch to Anvil (31337)
+          Wrong network — switch to {env.networkName}
         </span>
       ) : null}
       <span className="rounded-md border border-line bg-bg px-3 py-1.5 font-mono text-xs text-fg">

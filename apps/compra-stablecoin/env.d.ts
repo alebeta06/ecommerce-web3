@@ -14,6 +14,7 @@ declare global {
       readonly NEXT_PUBLIC_RPC_URL: string;
       readonly NEXT_PUBLIC_CHAIN_ID: string;
       readonly NEXT_PUBLIC_PAYMENT_GATEWAY_URL: string;
+      readonly NEXT_PUBLIC_NETWORK_NAME: string;
       // ── Server-only (solo API routes; NUNCA al cliente) ──────────────
       readonly STRIPE_SECRET_KEY: string;
       readonly WALLET_PRIVATE_KEY: string;

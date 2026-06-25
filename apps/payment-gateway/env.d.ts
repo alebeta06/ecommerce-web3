@@ -11,6 +11,7 @@ declare global {
       readonly NEXT_PUBLIC_CHAIN_ID: string;
       readonly NEXT_PUBLIC_ECOMMERCE_ADDRESS: string;
       readonly NEXT_PUBLIC_EURO_TOKEN_ADDRESS: string;
+      readonly NEXT_PUBLIC_NETWORK_NAME: string;
     }
   }
 

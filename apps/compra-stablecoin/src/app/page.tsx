@@ -77,7 +77,7 @@ export default function BuyStablecoinPage() {
       amount: "10",
       invoice: "INV-TEST",
       date,
-      redirect: "http://localhost:6001",
+      redirect: window.location.origin,
     });
     window.location.href = `${env.paymentGatewayUrl}?${params.toString()}`;
   }
@@ -192,7 +192,7 @@ export default function BuyStablecoinPage() {
 
                   {isWrongNetwork ? (
                     <p className="mt-4 text-sm text-red-400">
-                      Switch to the correct network (Anvil 31337).
+                      Switch to the correct network ({env.networkName}).
                     </p>
                   ) : clientSecret === null ? (
                     <button

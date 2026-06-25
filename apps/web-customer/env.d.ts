@@ -12,6 +12,7 @@ declare global {
       readonly NEXT_PUBLIC_ECOMMERCE_ADDRESS: string;
       readonly NEXT_PUBLIC_EURO_TOKEN_ADDRESS: string;
       readonly NEXT_PUBLIC_IPFS_GATEWAY: string;
+      readonly NEXT_PUBLIC_NETWORK_NAME: string;
     }
   }
 

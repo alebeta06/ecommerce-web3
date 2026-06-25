@@ -21,4 +21,6 @@ export const env = {
     "NEXT_PUBLIC_EURO_TOKEN_ADDRESS",
     process.env.NEXT_PUBLIC_EURO_TOKEN_ADDRESS,
   ),
+  // 🇪🇸 Nombre legible de la red esperada; fallback al chainId si no se define.
+  networkName: process.env.NEXT_PUBLIC_NETWORK_NAME ?? `chain ${Number(process.env.NEXT_PUBLIC_CHAIN_ID)}`,
 } as const;
