@@ -24,6 +24,9 @@ export const env = {
   // 🇪🇸 URL de la pasarela de pago (app payment-gateway). El checkout redirige aquí para pagar.
   // Requerida: sin ella el checkout redirigiría a un destino inválido → fallamos rápido.
   paymentGatewayUrl: required("NEXT_PUBLIC_PAYMENT_GATEWAY_URL", process.env.NEXT_PUBLIC_PAYMENT_GATEWAY_URL),
+  // 🇪🇸 URL de la app compra-stablecoin (comprar EURT con tarjeta). Acceso desde el header.
+  // Requerida: mismo criterio que paymentGatewayUrl (sin fallback a localhost).
+  buyTokensUrl: required("NEXT_PUBLIC_BUY_TOKENS_URL", process.env.NEXT_PUBLIC_BUY_TOKENS_URL),
   // 🇪🇸 El gateway IPFS tiene default razonable; no es crítico para arrancar.
   ipfsGateway: process.env.NEXT_PUBLIC_IPFS_GATEWAY ?? "https://gateway.pinata.cloud/ipfs/",
   // 🇪🇸 Nombre legible de la red esperada; fallback al chainId si no se define.

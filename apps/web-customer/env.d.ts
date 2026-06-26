@@ -13,6 +13,7 @@ declare global {
       readonly NEXT_PUBLIC_EURO_TOKEN_ADDRESS: string;
       readonly NEXT_PUBLIC_IPFS_GATEWAY: string;
       readonly NEXT_PUBLIC_NETWORK_NAME: string;
+      readonly NEXT_PUBLIC_BUY_TOKENS_URL: string;
     }
   }
 

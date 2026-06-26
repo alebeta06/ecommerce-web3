@@ -3,6 +3,7 @@ import "./globals.css";
 import { WalletProvider } from "@/hooks/useWallet";
 import { WalletConnect } from "@/components/WalletConnect";
 import { NavLinks } from "@/components/NavLinks";
+import { env } from "@/lib/env";
 
 // 🇪🇸 NOTA: layout raíz (App Router). Envolvemos toda la app en WalletProvider para que el estado
 // de la wallet sea único y compartido (header + hooks). El header muestra el estado de conexión.
@@ -24,7 +25,19 @@ export default function RootLayout({
               <span className="text-lg font-semibold text-fg">web-customer</span>
               <NavLinks />
             </div>
-            <WalletConnect />
+            <div className="flex items-center gap-3">
+              {/* 🇪🇸 Acceso a compra-stablecoin (comprar EURT con tarjeta). Pestaña nueva: es un
+                  desvío para conseguir fondos y volver; deja la tienda abierta detrás. */}
+              <a
+                href={env.buyTokensUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-md border border-line bg-card px-3 py-1.5 text-sm font-medium text-accent hover:text-fg"
+              >
+                Buy EURT
+              </a>
+              <WalletConnect />
+            </div>
           </header>
           <main>{children}</main>
         </WalletProvider>
