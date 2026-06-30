@@ -25,4 +25,11 @@ export const env = {
   ipfsGateway: process.env.NEXT_PUBLIC_IPFS_GATEWAY ?? "https://gateway.pinata.cloud/ipfs/",
   // 🇪🇸 Nombre legible de la red esperada; fallback al chainId si no se define.
   networkName: process.env.NEXT_PUBLIC_NETWORK_NAME ?? `chain ${Number(process.env.NEXT_PUBLIC_CHAIN_ID)}`,
+  // 🇪🇸 Bloque de despliegue del contrato: punto de arranque del escaneo de eventos. Empezar aquí
+  // (no en 0) evita recorrer millones de bloques vacíos previos al deploy. Default 0 → Anvil, donde
+  // el contrato vive casi desde el bloque 0. En Sepolia: 11146508.
+  deployBlock: Number(process.env.NEXT_PUBLIC_DEPLOY_BLOCK ?? "0"),
+  // 🇪🇸 Tamaño de ventana para paginar `eth_getLogs`. Default 10 = límite del free tier de Alchemy.
+  // En Anvil (sin límite) puede subirse, pero 10 funciona en todas partes sin tocar nada.
+  logWindowSize: Number(process.env.NEXT_PUBLIC_LOG_WINDOW_SIZE ?? "10"),
 } as const;

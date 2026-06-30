@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { type EventLog } from "ethers";
 import { useEcommerce } from "@/hooks/useEcommerce";
+import { paginatedQueryFilter } from "@/lib/paginatedQueryFilter";
+import { env } from "@/lib/env";
 import { type Customer, toCustomer } from "@/types/customer";
 
 export interface UseCustomers {
@@ -23,10 +25,16 @@ export function useCustomers(): UseCustomers {
     setError(null);
     try {
       // 🇪🇸 NOTA: el contrato NO expone una lista de clientes (no hay getAllCustomers ni contador).
-      // La única forma de descubrirlos es leer el LOG del evento CustomerRegistered con queryFilter,
-      // que escanea los bloques de la cadena buscando ese evento. En Anvil escaneamos desde el bloque
-      // 0 (barato); en una red real habría que paginar por rangos de bloques para no exceder límites.
-      const events = await read.queryFilter(read.filters.CustomerRegistered());
+      // La única forma de descubrirlos es leer el LOG del evento CustomerRegistered, que escanea los
+      // bloques de la cadena buscando ese evento. Paginamos en ventanas (env.logWindowSize, default
+      // 10 = límite free tier de Alchemy) desde el bloque de despliegue (env.deployBlock) para no
+      // exceder el límite de eth_getLogs ni recorrer bloques vacíos. En Anvil el resultado es idéntico.
+      const events = await paginatedQueryFilter(
+        read,
+        read.filters.CustomerRegistered(),
+        env.deployBlock,
+        env.logWindowSize,
+      );
       // 🇪🇸 Sacamos las wallets del primer arg indexado del evento. Set para deduplicar por si acaso
       // (un re-registro revierte en el contrato, así que en la práctica no habrá duplicados).
       const wallets = [
