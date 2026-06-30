@@ -10,8 +10,10 @@ function required(name: string, value: string | undefined): string {
   return value;
 }
 
+const rpcUrl = required("NEXT_PUBLIC_RPC_URL", process.env.NEXT_PUBLIC_RPC_URL);
+
 export const env = {
-  rpcUrl: required("NEXT_PUBLIC_RPC_URL", process.env.NEXT_PUBLIC_RPC_URL),
+  rpcUrl,
   chainId: Number(required("NEXT_PUBLIC_CHAIN_ID", process.env.NEXT_PUBLIC_CHAIN_ID)),
   ecommerceAddress: required(
     "NEXT_PUBLIC_ECOMMERCE_ADDRESS",
@@ -30,6 +32,13 @@ export const env = {
   // el contrato vive casi desde el bloque 0. En Sepolia: 11146508.
   deployBlock: Number(process.env.NEXT_PUBLIC_DEPLOY_BLOCK ?? "0"),
   // 🇪🇸 Tamaño de ventana para paginar `eth_getLogs`. Default 10 = límite del free tier de Alchemy.
-  // En Anvil (sin límite) puede subirse, pero 10 funciona en todas partes sin tocar nada.
+  // En Sepolia se sube (p.ej. 2000) JUNTO con logsRpcUrl=PublicNode, que admite rangos grandes.
   logWindowSize: Number(process.env.NEXT_PUBLIC_LOG_WINDOW_SIZE ?? "10"),
+  // 🇪🇸 RPC dedicado al escaneo de logs. El free tier de Alchemy capa eth_getLogs a 10 bloques
+  // (sin excepción por filtros), inviable para escanear ~890k bloques. Apuntamos el escaneo a un RPC
+  // público que admite rangos grandes (PublicNode), dejando Alchemy para el resto de llamadas.
+  // Opcional: si no se define, cae a rpcUrl → en Anvil usa el mismo nodo local (comportamiento idéntico).
+  logsRpcUrl: process.env.NEXT_PUBLIC_LOGS_RPC_URL?.trim() || rpcUrl,
+  // 🇪🇸 Nº máximo de peticiones eth_getLogs simultáneas durante el escaneo (throttle anti-429).
+  logConcurrency: Number(process.env.NEXT_PUBLIC_LOG_CONCURRENCY ?? "4"),
 } as const;

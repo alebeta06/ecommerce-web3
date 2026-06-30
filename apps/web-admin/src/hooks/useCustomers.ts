@@ -15,7 +15,7 @@ export interface UseCustomers {
 }
 
 export function useCustomers(): UseCustomers {
-  const { read } = useEcommerce();
+  const { read, logsRead } = useEcommerce();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -26,14 +26,16 @@ export function useCustomers(): UseCustomers {
     try {
       // 🇪🇸 NOTA: el contrato NO expone una lista de clientes (no hay getAllCustomers ni contador).
       // La única forma de descubrirlos es leer el LOG del evento CustomerRegistered, que escanea los
-      // bloques de la cadena buscando ese evento. Paginamos en ventanas (env.logWindowSize, default
-      // 10 = límite free tier de Alchemy) desde el bloque de despliegue (env.deployBlock) para no
-      // exceder el límite de eth_getLogs ni recorrer bloques vacíos. En Anvil el resultado es idéntico.
+      // bloques de la cadena buscando ese evento. Paginamos en ventanas (env.logWindowSize) desde el
+      // bloque de despliegue (env.deployBlock), con throttling (env.logConcurrency) y reintentos.
+      // Usamos `logsRead` (RPC de escaneo de logs, p.ej. PublicNode en Sepolia), NO Alchemy free,
+      // cuyo eth_getLogs está capado a 10 bloques. En Anvil logsRead === read → resultado idéntico.
       const events = await paginatedQueryFilter(
-        read,
-        read.filters.CustomerRegistered(),
+        logsRead,
+        logsRead.filters.CustomerRegistered(),
         env.deployBlock,
         env.logWindowSize,
+        env.logConcurrency,
       );
       // 🇪🇸 Sacamos las wallets del primer arg indexado del evento. Set para deduplicar por si acaso
       // (un re-registro revierte en el contrato, así que en la práctica no habrá duplicados).
