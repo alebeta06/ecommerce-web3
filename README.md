@@ -12,6 +12,8 @@
 ![Tests](https://img.shields.io/badge/tests-110%20passing-brightgreen)
 ![Coverage](https://img.shields.io/badge/contracts%20coverage-100%25-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-green)
+![Network](https://img.shields.io/badge/network-Ethereum%20Sepolia-627EEA?logo=ethereum&logoColor=white)
+[![Live Demo](https://img.shields.io/badge/demo-en%20vivo-success?logo=vercel&logoColor=white)](https://ecommerce-web3-web-customer.vercel.app/)
 
 Un **marketplace e-commerce Web3 multi-vendor** construido alrededor de una **stablecoin anclada al
 euro (EURT)**. Un cliente compra EURT con una **tarjeta de crédito real (Stripe)**, y luego gasta ese
@@ -25,6 +27,47 @@ firmada con MetaMask, y un único checkout puede pagar a **varios vendedores de 
 > Construido como **Módulo 8** del Máster CodeCrypto en *Blockchain & AI Systems Engineering*.
 > Filosofía: **aprendizaje profundo sobre velocidad** — Stripe real, IPFS real (Pinata),
 > 110 tests y 100% de cobertura del código de los contratos.
+
+---
+
+## 🔗 Demo en vivo
+
+> La versión **desplegada** corre en **Ethereum Sepolia** (contratos verificados) y **Vercel** (las 4
+> apps). La [guía de instalación](#5-instalación) de más abajo es para correr el sistema **en local con
+> Anvil** — sigue siendo válida para quien clone el repo.
+
+<div align="center">
+  <a href="https://www.youtube.com/watch?v=MqFWcHYnJ5o">
+    <img src="https://img.youtube.com/vi/MqFWcHYnJ5o/maxresdefault.jpg" alt="Ver Demo en YouTube" width="100%" style="max-width: 800px; border-radius: 8px;" />
+  </a>
+  <br/><br/>
+  <a href="https://www.youtube.com/watch?v=MqFWcHYnJ5o">
+    <img src="https://img.shields.io/badge/Ver_Video_en_YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white" alt="Ver Video en YouTube" />
+  </a>
+</div>
+
+### Apps desplegadas (Vercel)
+
+| App | Enlace | Qué hace |
+|-----|--------|----------|
+| 🛒 **Tienda** (web-customer) | [ecommerce-web3-web-customer.vercel.app](https://ecommerce-web3-web-customer.vercel.app/) | Catálogo, carrito, checkout e historial de órdenes del cliente. |
+| 💳 **Pasarela de pago** (payment-gateway) | [ecommerce-web3-payment-gateway.vercel.app](https://ecommerce-web3-payment-gateway.vercel.app/) | Firma con MetaMask el `approve` + `processPayment` que liquida las facturas. |
+| 🪙 **Compra de tokens** (compra-stablecoin) | [ecommerce-web3-compra-stablecoin.vercel.app](https://ecommerce-web3-compra-stablecoin.vercel.app/) | Compra EURT con tarjeta (Stripe test) → mint on-chain. |
+| 🛠️ **Panel admin** (web-admin) | [ecommerce-web3-web-admin.vercel.app](https://ecommerce-web3-web-admin.vercel.app/) | Gestión de empresas, productos (imágenes a IPFS), facturas y clientes. |
+
+### Contratos verificados en Sepolia
+
+| Contrato | Dirección | Etherscan |
+|----------|-----------|-----------|
+| **EuroToken** (EURT) | `0x6d3b3054140fc52AEb63f7fb2467177f1AeDbec3` | [Ver código verificado](https://sepolia.etherscan.io/address/0x6d3b3054140fc52aeb63f7fb2467177f1aedbec3#code) |
+| **Ecommerce** | `0xf8db42Bd1c711b60a810a0790Af4eB5219df2764` | [Ver código verificado](https://sepolia.etherscan.io/address/0xf8db42bd1c711b60a810a0790af4eb5219df2764#code) |
+
+### Documentación
+
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — arquitectura del sistema en detalle.
+- [`docs/DEPLOYMENT_SEPOLIA.md`](docs/DEPLOYMENT_SEPOLIA.md) — despliegue y verificación en Sepolia (direcciones + txs de seed).
+- [`docs/RPC_NOTES.md`](docs/RPC_NOTES.md) — configuración dual-RPC para el escaneo de event logs en Sepolia (free tier).
+- [`docs/VERCEL_ENV.md`](docs/VERCEL_ENV.md) — variables de entorno para el despliegue en Vercel.
 
 ---
 
@@ -70,6 +113,9 @@ sequenceDiagram
     G-->>W: redirect de vuelta a /orders
     W-->>C: Orden = Paid ✅
 ```
+
+> 🇪🇸 NOTA: los puertos (`6001`-`6004`) son los del entorno **local**. En **producción** cada app es una
+> URL de Vercel — ver [Demo en vivo](#-demo-en-vivo).
 
 ---
 
